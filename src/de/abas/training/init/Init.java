@@ -1,5 +1,10 @@
 package de.abas.training.init;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 
 import org.apache.log4j.Logger;
@@ -15,6 +20,7 @@ import de.abas.erp.db.schema.infosystem.InfosystemEditor;
 import de.abas.erp.db.schema.infosystem.InfosystemEditor.Row;
 import de.abas.erp.db.schema.infrastructure.JFOPServer;
 import de.abas.erp.db.schema.infrastructure.JFOPServerEditor;
+import de.abas.erp.db.schema.part.Product;
 import de.abas.erp.db.selection.Conditions;
 import de.abas.erp.db.selection.SelectionBuilder;
 import de.abas.erp.db.util.ContextHelper;
@@ -59,7 +65,7 @@ public class Init {
 			initInfosystems();
 			initJfopServerInstances();
 		}
-		catch (CommandException e) {
+		catch (CommandException | IOException e) {
 			System.out.println("An error occurred: " + e.getMessage());
 			logger.fatal(e.getMessage(), e);
 			return;
@@ -67,37 +73,68 @@ public class Init {
 	}
 
 	/**
-	 * Inserts or replaces .bashrc.
+	 * Removes all AJOPERF products.
 	 */
-	public void initBashrc() {
+	public void initAjoPerfProducts() {
+		for (String client : clients) {
+			DbContext ctx =
+					ContextHelper.createClientContext(server, 6550, client, "sy",
+							"Deleting AJOPERF products");
+			logger.debug(String.format("deleting all AJOPERF products in client %s",
+					client));
+			SelectionBuilder<Product> selectionBuilder =
+					SelectionBuilder.create(Product.class);
+			selectionBuilder.add(Conditions.starts(Product.META.swd, "AJOPERF"));
+			Query<Product> query = ctx.createQuery(selectionBuilder.build());
+			int no = query.execute().size();
+			for (Product product : query) {
+				product.delete();
+			}
+			logger.debug(String.format("%d products with swd AJOPERF were deleted",
+					no));
+			ctx.close();
+		}
+
+	}
+
+	/**
+	 * Inserts or replaces .bashrc.
+	 *
+	 * @throws IOException Thrown if file could not be copied or InputStream instance
+	 * could not be closed.
+	 */
+	public void initBashrc() throws IOException {
 		for (String client : clients) {
 			logger.debug(String.format("initializing .bashrc for client %s", client));
-			Utils.runSystemCommand("scp files/.bashrc " + client + "@" + server
-					+ ":~");
+			copyFile(client, "", ".bashrc", "770");
 		}
 	}
 
 	/**
 	 * Replaces fop.txt with default fop.txt.
+	 *
+	 * @throws IOException Thrown if file could not be copied or InputStream instance
+	 * could not be closed.
 	 */
-	public void initFopTxt() {
+	public void initFopTxt() throws IOException {
 		for (String client : clients) {
 			logger.debug(String.format("initializing fop.txt for client %s", client));
-			Utils.runSystemCommand("scp files/fop.txt " + client + "@" + server
-					+ ":~");
+			copyFile(client, "", "fop.txt", "660");
 		}
 
 	}
 
 	/**
 	 * Inserts or replaces git-prompt.sh
+	 *
+	 * @throws IOException Thrown if file could not be copied or InputStream instance
+	 * could not be closed.
 	 */
-	public void initGitPrompt() {
+	public void initGitPrompt() throws IOException {
 		for (String client : clients) {
 			logger.debug(String.format("initializing git-prompt.sh for client %s",
 					client));
-			Utils.runSystemCommand("scp files/git-prompt.sh " + client + "@"
-					+ server + ":~");
+			copyFile(client, "", "git-prompt.sh", "770");
 		}
 	}
 
@@ -125,7 +162,9 @@ public class Init {
 				Iterable<Row> editableRows =
 						infosytemEditor.table().getEditableRows();
 				for (Row row : editableRows) {
-					initRowFields(row);
+					if (!row.getEFOPSymbol().isEmpty()) {
+						initRowFields(row);
+					}
 				}
 				infosytemEditor.commit();
 			}
@@ -140,9 +179,7 @@ public class Init {
 		for (String client : clients) {
 			logger.debug(String.format(
 					"initializing java/projects folder for client %s", client));
-			Utils.runSystemCommand("su "
-					+ client
-					+ " && cd ~ && eval$(sh denv.sh) && cd ~/java/projects && rm -rf *");
+			Utils.runSystemCommand("rm -rf " + client + "/java/projects/*");
 		}
 	}
 
@@ -178,25 +215,29 @@ public class Init {
 
 	/**
 	 * Replaces mandant.classpath with default mandant.classpath.
+	 *
+	 * @throws IOException Thrown if file could not be copied or InputStream instance
+	 * could not be closed.
 	 */
-	public void initMandantClasspath() {
+	public void initMandantClasspath() throws IOException {
 		for (String client : clients) {
 			logger.debug(String.format(
 					"initializing mandant.classpath for client %s", client));
-			Utils.runSystemCommand("scp files/mandant.classpath " + client + "@"
-					+ server + ":~/java/");
+			copyFile(client, "java/", "mandant.classpath", "770");
 		}
 
 	}
 
 	/**
 	 * Inserts or replaces .vimrc.
+	 *
+	 * @throws IOException Thrown if file could not be copied or InputStream instance
+	 * could not be closed.
 	 */
-	public void initVimrc() {
+	public void initVimrc() throws IOException {
 		for (String client : clients) {
 			logger.debug(String.format("initializing .vimrc for client %s", client));
-			Utils.runSystemCommand("scp files/.vimrc " + client + "@" + server
-					+ ":~");
+			copyFile(client, "", ".vimrc", "660");
 		}
 	}
 
@@ -237,6 +278,35 @@ public class Init {
 		logger.debug(String
 				.format("JFOP Server instance %s successfully entered in password definition of client %s",
 						jfopServer.getIdno(), client));
+	}
+
+	/**
+	 * Copies the specified file as resource from jar to the $MANDANTDIR of the
+	 * specified client. Sets owner to the specified client and group to users. Sets
+	 * the access rights as specified.
+	 *
+	 * @param client The client to copy to.
+	 * @param path The path to the file.
+	 * @param file The file to copy.
+	 * @param rights The access rights of the target file.
+	 * @throws IOException Thrown if file could not be copied or InputStream instance
+	 * could not be closed.
+	 */
+	private void copyFile(String client, String path, String file, String rights)
+			throws IOException {
+		InputStream in = null;
+		try {
+			in = getClass().getClassLoader().getResourceAsStream("files/" + file);
+			Files.copy(in, new File(client + "/" + path + file).toPath(),
+					StandardCopyOption.REPLACE_EXISTING);
+			Utils.runSystemCommand("chown " + client + ":users " + client + "/"
+					+ path + file);
+			Utils.runSystemCommand("chmod " + rights + " " + client + "/" + path
+					+ file);
+		}
+		finally {
+			in.close();
+		}
 	}
 
 	/**

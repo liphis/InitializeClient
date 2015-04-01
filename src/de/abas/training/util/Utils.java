@@ -66,22 +66,20 @@ public class Utils {
 		try {
 			Process process = Runtime.getRuntime().exec(command);
 			if (process != null) {
-				if (process.getErrorStream() == null) {
-					bufferedReader =
-							new BufferedReader(new InputStreamReader(
-									process.getInputStream()));
-					if (process.getInputStream() != null) {
-						String line = null;
-						while ((line = bufferedReader.readLine()) != null) {
-							logger.debug(String.format("Command output: %s", line));
-						}
-					}
-					else {
-						logger.debug("No command output");
+				bufferedReader =
+						new BufferedReader(new InputStreamReader(
+								process.getInputStream()));
+				if (process.getInputStream() != null) {
+					String line = null;
+					while ((line = bufferedReader.readLine()) != null) {
+						logger.debug(String.format("Command output: %s", line));
 					}
 				}
+				else {
+					logger.debug("No command output");
+				}
 			}
-			return null;
+			return bufferedReader;
 		}
 		catch (IOException e) {
 			logger.fatal(e.getMessage(), e);
