@@ -1,0 +1,419 @@
+#      fop.txt
+#
+#  Konfigurationsdatei der flexiblen OberflÑche
+#
+# Jede Zeile mu· genau mindestens 6 EintrÑge enthalten (durch Lerzeichen getrennt).
+#
+# Eine Kommentarzeile mu· mit '#' beginnen.
+#
+# In jeder Zeile steht ein Ereignis, das einen FOP auslîsen soll. 
+#
+# Format:
+# <Maskennummer> <Kommando> <Event> <Taste> <Maskenfeld> <Kopf/Tab> [weitersuchen?] <FOP-Datei>
+#
+# Maskennummer: siehe MenÅ "flexible OberflÑche" der Maske
+# Kommando:     NEU, ZEIGEN, ...
+# Event:        maskein, maskaus, maskabbr, feldpruef, feldaus, ...
+# FOP-Datei:    Name des LG-Bausteines, der ausgefÅhrt werden soll
+# weitersuchen: Diese Angabe darf fehlen. Mîgliche Werte sind:
+#                 [S]   : Stop, nicht nach weiteren EFOPs fÅr dieses Ereignis suchen (Default)
+#                 [C]   : Continue, nach weiteren EFOPs fÅr dieses Ereignis suchen
+#               Die Angabe wird daran erkannt, dass sie in  
+#               eckigen Klammern steht (die darauffolgende Angabe "FOP-Datei" kann keine eckigen Klammern enthalten, 
+#               da sie dann kein zulÑssiger FOP-Name mehr wÑre) 
+#
+# '*' in einer Spalte steht fÅr "beliebig".   
+# Fehlende Angabe bei "FOP-Datei" steht fÅr Direktmodus.
+# Die konfigurierten EFOPs werden in der Reihenfolge ihrer Definition ausgefÅhrt.
+#
+# Beispiele:
+# 
+#   0  NEU  maskein  -   -   -   KUNDE.EIN   
+#   ---> beim Eintritt in die Kundenmaske wird KUNDE.EIN ausgefÅhrt
+#
+#   6  éNDERN  *  -  -  -  BUCHUNG.FOP
+#   ---> beim éndern einer Buchung wird beim Maskeneintritt und -austritt
+#        BUCHUNG.FOP ausgefÅhrt
+#
+#   85  Ñndern  fkttaste  hole  ftext4  K  FOP.HILFE
+#   ---> mit HOLE auf dem Freitext4 einer Nachricht
+#        wird das im Freitext4 stehende Hilfekapitel angezeigt
+#
+#   *  *  *  *  *  *  TRACE.FOP 
+#   ---> Jedes Ereignis wird in einem kleinen FO-Fenster angezeigt, 
+#
+#        per Hand kann ein Exitstatus gesetzt werden
+#
+#
+# FOPs zum Drucken von Differenz, Konten und Buchungsnachweis
+# fÅr neue Umsatzsteuervoranmeldung.
+161  zeigen   buttonnach  *  bkdruck  K  fb/USTVA.N.DIFFNW
+161  zeigen   buttonnach  *  druck  K  fb/USTVA.N
+
+161  Ñndern   buttonnach  *  bkdruck  K  fb/USTVA.N.DIFFNW
+161  Ñndern   buttonnach  *  druck  K  fb/USTVA.N
+
+# inventur
+65  freigeben maskaus     *  *  *  la/INVENTUR.INI
+67  Ñndern    maskpruef   *  *  *  la/INV.SET.NBPR
+65  Ñndern    buttonnach  *  setzposnr  K  la/INVENTUR.INI  
+65  neu       buttonnach  *  setzposnr  K  la/INVENTUR.INI 
+# Neue SteuerschlÅssel
+461  neu  buttonnach  *  button1  K  fb/STTAB
+
+# Sendto und Browser Button fÅr Kunde Lieferant Sachbearbeiter Mitarbeiter Adressen
+25 * buttonnach  *  mailto   K  SENDTO
+25 * buttonnach  *  browurl  K  BROWSER.URL
+25 * buttonnach  *  mailto2  K  SENDTO
+25 * buttonnach  *  browurl2 K  BROWSER.URL
+26 * buttonnach  *  mailto   K  SENDTO
+26 * buttonnach  *  browurl  K  BROWSER.URL
+26 * buttonnach  *  mailto2  K  SENDTO
+26 * buttonnach  *  browurl2 K  BROWSER.URL
+11 * buttonnach  *  mailto   K  SENDTO
+11 * buttonnach  *  browurl  K  BROWSER.URL
+0  * buttonnach  *  mailto   K  SENDTO
+0  * buttonnach  *  browurl  K  BROWSER.URL
+0  * buttonnach  *  mailto2  K  SENDTO
+0  * buttonnach  *  browurl2 K  BROWSER.URL
+1  * buttonnach  *  mailto   K  SENDTO
+1  * buttonnach  *  browurl  K  BROWSER.URL
+1  * buttonnach  *  mailto2  K  SENDTO
+1  * buttonnach  *  browurl2 K  BROWSER.URL
+3  * buttonnach  *  mailto   K  SENDTO
+3  * buttonnach  *  browurl  K  BROWSER.URL
+3  * buttonnach  *  mailto2  K  SENDTO
+3  * buttonnach  *  browurl2 K  BROWSER.URL
+4  * buttonnach  *  mailto   K  SENDTO
+4  * buttonnach  *  browurl  K  BROWSER.URL
+4  * buttonnach  *  mailto2  K  SENDTO
+4  * buttonnach  *  browurl2 K  BROWSER.URL
+10 * buttonnach  *  mailto   K  SENDTO
+10 * buttonnach  *  browurl  K  BROWSER.URL
+789 * buttonnach  *  mailto   K  SENDTO
+789 * buttonnach  *  browurl  K  BROWSER.URL
+
+# Sendto fuer Verkauf/Einkauf
+34 * buttonnach  *  mailto   K  SENDTO
+34 * buttonnach  *  mailto2  K  SENDTO
+31 * buttonnach  *  mailto   K  SENDTO
+31 * buttonnach  *  mailto2  K  SENDTO
+38 * buttonnach  *  mailto   K  SENDTO
+38 * buttonnach  *  mailto2  K  SENDTO
+32 * buttonnach  *  mailto   K  SENDTO
+32 * buttonnach  *  mailto2  K  SENDTO
+35 * buttonnach  *  mailto   K  SENDTO
+35 * buttonnach  *  mailto2  K  SENDTO
+36 * buttonnach  *  mailto   K  SENDTO
+36 * buttonnach  *  mailto2  K  SENDTO
+39 * buttonnach  *  mailto   K  SENDTO
+39 * buttonnach  *  mailto2  K  SENDTO
+43 * buttonnach  *  mailto   K  SENDTO
+43 * buttonnach  *  mailto2  K  SENDTO
+42 * buttonnach  *  mailto   K  SENDTO
+42 * buttonnach  *  mailto2  K  SENDTO
+45 * buttonnach  *  mailto   K  SENDTO
+45 * buttonnach  *  mailto2  K  SENDTO
+46 * buttonnach  *  mailto   K  SENDTO
+46 * buttonnach  *  mailto2  K  SENDTO
+819 * buttonnach  *  mailto   K  SENDTO
+819 * buttonnach  *  mailto2  K  SENDTO
+
+# Sendto fuer Serviceabwicklung
+855 * buttonnach  *  mailto   K  SENDTO
+855 * buttonnach  *  mailto2  K  SENDTO
+856 * buttonnach  *  mailto   K  SENDTO
+856 * buttonnach  *  mailto2  K  SENDTO
+878 * buttonnach  *  mailto   K  SENDTO
+878 * buttonnach  *  mailto2  K  SENDTO
+884 * buttonnach  *  mailto   K  SENDTO
+884 * buttonnach  *  mailto2  K  SENDTO
+
+# Sendto fuer Lager/Betriebsdaten
+146 * buttonnach  *  mailto   K  SENDTO
+463 * buttonnach  *  mailto   K  SENDTO
+50  * buttonnach  *  mailto   K  SENDTO
+50  * buttonnach  *  browurl  K  BROWSER.URL
+
+# Browser Button Teilestamm
+2  * buttonnach  *  bildz   K  BROWSER.BILD
+2  * buttonnach  *  bbeschz K  BROWSER.BESC
+#
+# FÅr Planzahlen in Verkehrszahlen-Masken gibt es den Button "DurchfÅhren 
+# der Planung", an den das FOP ko/VKZPLAN gehÑngt werden mu·.
+122  neu  buttonnach  *  planen  K  ko/VKZPLAN
+122  Ñndern  buttonnach  *  planen  K  ko/VKZPLAN
+471  neu  buttonnach  *  planen  K  ko/VKZPLAN
+471  Ñndern  buttonnach  *  planen  K  ko/VKZPLAN
+478  neu  buttonnach  *  planen  K  ko/VKZPLAN
+478  Ñndern  buttonnach  *  planen  K  ko/VKZPLAN
+479  neu  buttonnach  *  planen  K  ko/VKZPLAN
+479  Ñndern  buttonnach  *  planen  K  ko/VKZPLAN
+133  neu  buttonnach  *  planen  K  ko/VKZPLAN
+133 Ñndern  buttonnach  *  planen  K  ko/VKZPLAN
+# FÅr Istzahlen in Verkehrszahlen-Masken der Bezugrî·e und Umlage
+# gibt es den Button "Ist-Wert kopieren" an den das FOP ko/VKZPLAN
+# gehÑngt werden mu·.
+79   neu  buttonnach  *  planen  K  ko/VKZPLAN
+79   Ñndern  buttonnach  *  planen  K  ko/VKZPLAN
+483  neu  buttonnach  *  planen  K  ko/VKZPLAN
+483  Ñndern  buttonnach  *  planen  K  ko/VKZPLAN
+769  neu  buttonnach  *  planen  K  ko/VKZPLAN
+769  Ñndern  buttonnach  *  planen  K  ko/VKZPLAN
+# Ausgabe BAB-Formular
+468  zeigen  buttonnach  *  druck  K   ko/FRMDRMASK
+468  Ñndern  buttonnach  *  druck  K   ko/FRMDRMASK
+468  zeigen  buttonnach  *  bzchart T  ko/BABZCHART
+468  Ñndern  buttonnach  *  bzchart T  ko/BABZCHART
+# Buchungs- und Kontennachweis BAB-Formular
+470  -  buttonnach  *  druck  K  ko/FRMBUNACH
+474  -  buttonnach  *  druck  K  ko/FRMKONACH
+#
+# Umsatz/VKZ-Charts
+#
+0  Ñndern  buttonnach  *  chums   K  fb/FOP.CHART.UMSATZ
+0  zeigen  buttonnach  *  chums   K  fb/FOP.CHART.UMSATZ
+0  Ñndern  buttonnach  *  chvkz   K  fb/FOP.CHART.VKZ
+0  zeigen  buttonnach  *  chvkz   K  fb/FOP.CHART.VKZ
+1  Ñndern  buttonnach  *  chums   K  fb/FOP.CHART.UMSATZ
+1  zeigen  buttonnach  *  chums   K  fb/FOP.CHART.UMSATZ
+1  Ñndern  buttonnach  *  chvkz   K  fb/FOP.CHART.VKZ
+1  zeigen  buttonnach  *  chvkz   K  fb/FOP.CHART.VKZ
+5  Ñndern  buttonnach  *  chvkz   K  fb/FOP.CHART.VKZ
+5  zeigen  buttonnach  *  chvkz   K  fb/FOP.CHART.VKZ
+#
+# Lager-Charts
+#
+2  Ñndern  buttonnach  *  chplan  K  la/FOP.CHART.PLAN
+2  zeigen  buttonnach  *  chplan  K  la/FOP.CHART.PLAN
+2  Ñndern  buttonnach  *  chzuab  K  la/FOP.CHART.ZUAB
+2  zeigen  buttonnach  *  chzuab  K  la/FOP.CHART.ZUAB
+#
+# Fertigungs-Charts
+#
+2   Ñndern  buttonnach  *  chfv    K  fe/FOP.CHART.FV
+2   zeigen  buttonnach  *  chfv    K  fe/FOP.CHART.FV
+8   Ñndern  maskein     *  *       *  fe/FOP.CHART.VOR
+8   zeigen  maskein     *  *       *  fe/FOP.CHART.VOR
+8   Ñndern  buttonnach  *  chkap   K  fe/FOP.CHART.KAP
+8   zeigen  buttonnach  *  chkap   K  fe/FOP.CHART.KAP
+8   Ñndern  buttonnach  *  chbel   K  fe/FOP.CHART.BEL
+8   zeigen  buttonnach  *  chbel   K  fe/FOP.CHART.BEL
+71  Ñndern  buttonnach  *  chbel   K  fe/FOP.CHART.MABEL
+71  zeigen  buttonnach  *  chbel   K  fe/FOP.CHART.MABEL
+71  Ñndern  buttonnach  *  ladetab K  fe/FOP.CHART.MABEL
+71  zeigen  buttonnach  *  ladetab K  fe/FOP.CHART.MABEL
+71  Ñndern  feldaus     *  chart   K  fe/FOP.CHART.BELAUS
+80  Ñndern  maskein     *  *       *  fe/FOP.CHART.VOR
+80  zeigen  maskein     *  *       *  fe/FOP.CHART.VOR
+80  Ñndern  buttonnach  *  chkap   K  fe/FOP.CHART.KAP
+80  zeigen  buttonnach  *  chkap   K  fe/FOP.CHART.KAP
+80  Ñndern  buttonnach  *  chbel   K  fe/FOP.CHART.BEL
+80  zeigen  buttonnach  *  chbel   K  fe/FOP.CHART.BEL
+
+# Charts fÅr Anlagen
+124 zeigen buttonnach * bchart1 K ab/CHART.RBW
+124 zeigen buttonnach * bchart2 K ab/CHART.SEL      
+124 Ñndern buttonnach * bchart1 K ab/CHART.RBW
+124 Ñndern buttonnach * bchart2 K ab/CHART.SEL      
+
+# Infosysteme exportieren:
+12 Ñndern  feldpruef   *  such65    K  isfop/INFOSYS.SUCH.FP
+12 neu     feldpruef   *  such65    K  isfop/INFOSYS.SUCH.FP
+
+# Vorlagen fÅr EFOP und EJFOP erzeugen:
+# Kopfbuttons
+12 Ñndern  buttonvor  *  bubkopf         K  is/INFOSYS.TEMPLATE.BV
+12 neu     buttonvor  *  bubkopf         K  is/INFOSYS.TEMPLATE.BV
+12 Ñndern  buttonvor  *  bubfuss         K  is/INFOSYS.TEMPLATE.BV
+12 neu     buttonvor  *  bubfuss         K  is/INFOSYS.TEMPLATE.BV
+12 Ñndern  buttonvor  *  bugrkopf        K  is/INFOSYS.TEMPLATE.BV
+12 neu     buttonvor  *  bugrkopf        K  is/INFOSYS.TEMPLATE.BV
+12 Ñndern  buttonvor  *  bugrfuss        K  is/INFOSYS.TEMPLATE.BV
+12 neu     buttonvor  *  bugrfuss        K  is/INFOSYS.TEMPLATE.BV
+12 Ñndern  buttonvor  *  butab           K  is/INFOSYS.TEMPLATE.BV
+12 neu     buttonvor  *  butab           K  is/INFOSYS.TEMPLATE.BV
+12 Ñndern  buttonvor  *  bumaskein       K  is/INFOSYS.TEMPLATE.BV
+12 neu     buttonvor  *  bumaskein       K  is/INFOSYS.TEMPLATE.BV
+12 Ñndern  buttonvor  *  bumaskprue      K  is/INFOSYS.TEMPLATE.BV
+12 neu     buttonvor  *  bumaskprue      K  is/INFOSYS.TEMPLATE.BV
+12 Ñndern  buttonvor  *  bumaskaus       K  is/INFOSYS.TEMPLATE.BV
+12 neu     buttonvor  *  bumaskaus       K  is/INFOSYS.TEMPLATE.BV
+12 Ñndern  buttonvor  *  bumaskende      K  is/INFOSYS.TEMPLATE.BV
+12 neu     buttonvor  *  bumaskende      K  is/INFOSYS.TEMPLATE.BV
+12 Ñndern  buttonvor  *  bumaskabbr      K  is/INFOSYS.TEMPLATE.BV
+12 neu     buttonvor  *  bumaskabbr      K  is/INFOSYS.TEMPLATE.BV
+12 Ñndern  buttonvor  *  buzreinvo       K  is/INFOSYS.TEMPLATE.BV
+12 neu     buttonvor  *  buzreinvo       K  is/INFOSYS.TEMPLATE.BV
+12 Ñndern  buttonvor  *  buzreinna       K  is/INFOSYS.TEMPLATE.BV
+12 neu     buttonvor  *  buzreinna       K  is/INFOSYS.TEMPLATE.BV
+12 Ñndern  buttonvor  *  buzrausvo       K  is/INFOSYS.TEMPLATE.BV
+12 neu     buttonvor  *  buzrausvo       K  is/INFOSYS.TEMPLATE.BV
+12 Ñndern  buttonvor  *  buzrausna       K  is/INFOSYS.TEMPLATE.BV
+12 neu     buttonvor  *  buzrausna       K  is/INFOSYS.TEMPLATE.BV
+12 Ñndern  buttonvor  *  buzmark         K  is/INFOSYS.TEMPLATE.BV
+12 neu     buttonvor  *  buzmark         K  is/INFOSYS.TEMPLATE.BV
+12 Ñndern  buttonvor  *  buzbewvo        K  is/INFOSYS.TEMPLATE.BV
+12 neu     buttonvor  *  buzbewvo        K  is/INFOSYS.TEMPLATE.BV
+12 Ñndern  buttonvor  *  buzbewna        K  is/INFOSYS.TEMPLATE.BV
+12 neu     buttonvor  *  buzbewna        K  is/INFOSYS.TEMPLATE.BV
+12 Ñndern  buttonvor  *  buzwechsel      K  is/INFOSYS.TEMPLATE.BV
+12 neu     buttonvor  *  buzwechsel      K  is/INFOSYS.TEMPLATE.BV
+
+# Zeilenbuttons
+12 Ñndern  buttonvor  *  bubuttvor       T  is/INFOSYS.TEMPLATE.BV
+12 neu     buttonvor  *  bubuttvor       T  is/INFOSYS.TEMPLATE.BV
+12 Ñndern  buttonvor  *  bubuttnach      T  is/INFOSYS.TEMPLATE.BV
+12 neu     buttonvor  *  bubuttnach      T  is/INFOSYS.TEMPLATE.BV
+12 Ñndern  buttonvor  *  bufeldfuel      T  is/INFOSYS.TEMPLATE.BV
+12 neu     buttonvor  *  bufeldfuel      T  is/INFOSYS.TEMPLATE.BV
+12 Ñndern  buttonvor  *  bufeldprue      T  is/INFOSYS.TEMPLATE.BV
+12 neu     buttonvor  *  bufeldprue      T  is/INFOSYS.TEMPLATE.BV
+12 Ñndern  buttonvor  *  bufeldaus       T  is/INFOSYS.TEMPLATE.BV
+12 neu     buttonvor  *  bufeldaus       T  is/INFOSYS.TEMPLATE.BV
+
+# Anzahlungen auf Schlussrechnungen anrechnen
+36   *     buttonnach *  bkalk           T  ev/RE.ABSCHLUSS
+46   *     buttonnach *  bkalk           T  ev/RE.ABSCHLUSS
+
+# Euroumstellung
+# Sperren von EU-WÑhrungen nach dem Ende der Umstellungsperiode.
+# GeprÅft werden die WÑhrungen bei:
+#
+#   0=Kunde                     KundenwÑhrung, Kreditlimit, Bank,
+#                               Post, 2. WÑhrung
+#   1=Lieferant                 Lief-WÑhrung, Bank, Post, 2. WÑhrung
+#   2=Artikel                   EK-Preis 1-5, VK-Preis 1-9, neuer
+#                               VK-Preis 1-9
+#   5=Konto                     2. WÑhrung
+#   6=Buchung                   ErfassungswÑhrung
+#   11=Mitarbeiter              MA-WÑhrung, Bank, Post, 2. WÑhrung
+#   17=Preisfindung             Staffelpreise, neue Staffelpreise
+#   28=Zusatzposition           EK-Preis, VK-Preis, neuer VK-Preis
+#   34=Rahmenauftrag            VorgangswÑhrung
+#   31=Angebot                  VorgangswÑhrung
+#   32=Auftrag                  VorgangswÑhrung
+#   36=Rechnung                 VorgangswÑhrung
+#   39=Rahmenauftrag            VorgangswÑhrung
+#   43=Anfrage                  VorgangswÑhrung
+#   42=Bestellung               VorgangswÑhrung
+#   46=Rechnung                 VorgangswÑhrung
+#   47=Zahlung                  ZahlungswÑhrung
+#   53=Lohngruppe
+#   57=DEL-Notierung
+#   59=LÑndertabelle            VorschlagswÑhrung
+#   140=L-Buchung               Zubuchung Wert pro Einheit
+#   169=stat.Buchung            Erfassungsbuchung
+#   464=Lagergruppeneigenschaft EK-Preis
+#
+# 0   *       maskpruef    *    *    *    UMSTELLUNG
+# 1   *       maskpruef    *    *    *    UMSTELLUNG
+# 2   *       maskpruef    *    *    *    UMSTELLUNG
+# 5   *       maskpruef    *    *    *    UMSTELLUNG
+# 6   *       maskpruef    *    *    *    UMSTELLUNG
+# 11  *       maskpruef    *    *    *    UMSTELLUNG
+# 17  *       maskpruef    *    *    *    UMSTELLUNG
+# 28  *       maskpruef    *    *    *    UMSTELLUNG
+# 34  *       maskpruef    *    *    *    UMSTELLUNG
+# 31  *       maskpruef    *    *    *    UMSTELLUNG
+# 32  *       maskpruef    *    *    *    UMSTELLUNG
+# 36  *       maskpruef    *    *    *    UMSTELLUNG
+# 39  *       maskpruef    *    *    *    UMSTELLUNG
+# 43  *       maskpruef    *    *    *    UMSTELLUNG
+# 42  *       maskpruef    *    *    *    UMSTELLUNG
+# 46  *       maskpruef    *    *    *    UMSTELLUNG
+# 47  *       maskpruef    *    *    *    UMSTELLUNG
+# 53  *       maskpruef    *    *    *    UMSTELLUNG
+# 57  *       maskpruef    *    *    *    UMSTELLUNG
+# 59  *       maskpruef    *    *    *    UMSTELLUNG
+# 140 *       maskpruef    *    *    *    UMSTELLUNG
+# 169 *       maskpruef    *    *    *    UMSTELLUNG
+# 464 *       maskpruef    *    *    *    UMSTELLUNG
+
+497   *        buttonnach  *  genfgj  K  fb/MK.FGJV
+
+#
+# Suche nach deutschen Bankleitzahlen (Start)
+# - auskommentiert, da es von externen Daten abhÑngt -
+#
+#
+# Bankmaske
+#
+# 789  Ñndern  feldaus     *  name    K  de.abas.jfop.st.GermanBlz.java
+# 789  neu        feldaus     *  name    K  de.abas.jfop.st.GermanBlz.java
+# 789  Ñndern  feldaus     *  nident  K  de.abas.jfop.st.GermanBlz.java
+# 789  neu        feldaus     *  nident  K  de.abas.jfop.st.GermanBlz.java
+# 789  Ñndern  feldaus     *  ort     K  de.abas.jfop.st.GermanBlz.java
+# 789  neu        feldaus     *  ort     K  de.abas.jfop.st.GermanBlz.java
+#
+# Suche nach deutschen Bankleitzahlen (Ende)
+#
+
+# setzten der Farben in der Maske "editierbare Plankarte" (mask.152)
+152  Ñndern  buttonnach    *  selekt   K  FOP.FARBE.MASKE.152
+152  Ñndern  buttonnach    *  ladetab  K  FOP.FARBE.MASKE.152
+152  Ñndern  feldaus       *  lzuomge  T  FOP.FARBE.MASKE.152
+152  zeigen  buttonnach    *  selekt   K  FOP.FARBE.MASKE.152
+152  zeigen  buttonnach    *  ladetab  K  FOP.FARBE.MASKE.152
+152  Ñndern  zeilebewnach  *  *        T  FOP.FARBE.MASKE.152
+152  Ñndern  maskein       *  *        K  FOP.FARBE.MASKE.152
+152  zeigen  maskein       *  *        K  FOP.FARBE.MASKE.152
+
+726   *       buttonnach  *  dastart  K  kr/KONSEXPORT
+
+# Beispiel-Fop zum Vorbesetzen der Parameter fuer EMail-Drucker
+#727   *       feldaus     *  drucker  K  PRINTER.FELDAUS
+
+# EDI-Nachrichten zum Darstellen der konfigurierten Satzarten in Farbe
+777  zeigen  buttonnach    *  confsel     K  dfue/FOP.777.EV
+777  zeigen  maskein       *  *           *  dfue/FOP.777.EV
+777  zeigen  buttonnach    *  bustruktur  T  dfue/FOP.777.EV
+
+# EDI-Satzarten zum Darstellen der konfigurierten Feldern in Farbe
+778  zeigen  maskein       *  *           *  dfue/FOP.778.EV
+778  zeigen  buttonnach    *  busetup     T  dfue/FOP.778.EV
+
+# EDI-Job starten
+747  zeigen  buttonnach  *  jobstart  K  dfue/FOP.747.JOBSTART.BN
+
+# EDI-Konfiguration zum Darstellen der konfigurierten Feldern in Farbe
+751  zeigen  maskein       *  *           *  dfue/FOP.751.EV
+751  zeigen  buttonnach  *  STRUKTUPD  K  dfue/FOP.751.STRUKTUPD.BN
+751  zeigen  buttonnach  *  createsqltab  K  dfue/FOP.751.CREATESQLTAB.BN
+
+# Banken auf Ñhnliche schon vorhandene Daten prÅfen und ggf. melden
+789  neu  maskpruef  *  *  *  de.abas.jfop.st.BankDuplFind.java
+789  Ñndern  maskpruef  *  *  *  de.abas.jfop.st.BankDuplFind.java
+
+# Sperrlisten importieren/Import black lists
+813  *        buttonnach  *  dovalid  K  st/VALIDIERE.SPERRLISTE.BN
+813  Ñndern  buttonnach  *  doimport K  st/IMPORTIERE.SPERRLISTE.BN
+
+#
+# Wertereihen Absatzumsatzplanung
+#
+877  Ñndern  buttonnach  *  chmge   K  la/APLAN.CHART.FOP
+877  zeigen  buttonnach  *  chmge   K  la/APLAN.CHART.FOP
+877  Ñndern  buttonnach  *  chwert  K  la/APLAN.CHART.FOP
+877  zeigen  buttonnach  *  chwert  K  la/APLAN.CHART.FOP
+881  Ñndern  buttonnach  *  chmge   K  la/APLAN.CHART.FOP
+881  zeigen  buttonnach  *  chmge   K  la/APLAN.CHART.FOP
+881  Ñndern  buttonnach  *  chwert  K  la/APLAN.CHART.FOP
+881  zeigen  buttonnach  *  chwert  K  la/APLAN.CHART.FOP
+
+#
+# Kalender-Charts (Betriebskalender = Diposkalender + KapazitÑtsangebot)
+#
+889  Ñndern  buttonnach  *  chkap   K  st/KALENDER.CHART.FOP
+889  zeigen  buttonnach  *  chkap   K  st/KALENDER.CHART.FOP
+898  Ñndern  buttonnach  *  chkap   K  st/KALENDER.CHART.FOP
+898  zeigen  buttonnach  *  chkap   K  st/KALENDER.CHART.FOP
+
+#
+# Anbindung des HTML-Freitexteditors ueber Buttons
+#
+*   *  buttonvor  *  hftext   K  FTEXTEDITOR
+*   *  buttonvor  *  hftext2  K  FTEXTEDITOR
+*   *  buttonvor  *  hpftext  T  FTEXTEDITOR
+# Verfuegbarkeitpruefung
+915  *       buttonvor   *  zeigbeschaff  T [C] ev/VPBESCHAFF.FOP
