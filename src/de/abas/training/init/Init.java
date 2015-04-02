@@ -1,6 +1,7 @@
 package de.abas.training.init;
 
 import java.io.File;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.DirectoryStream;
@@ -45,6 +46,7 @@ public class Init {
 
 	String server;
 	String[] clients;
+	String currClient;
 	boolean advanced;
 
 	Logger logger = Utils.getLogger();
@@ -65,6 +67,38 @@ public class Init {
 	}
 
 	/**
+	 * Clones git repository for training into java/projects.
+	 * Chooses right repository according to basic or advanced training.
+	 * Checks out template branch for advanced training.
+	 *
+	 * @throws IOException
+	 */
+	public void cloneGitRepo() throws IOException {
+		for (String client : clients) {
+			currClient = client;
+			if (advanced) {
+				logger.debug(String.format(
+						"cloning AJOAdvanced project for client %s", client));
+				File file = new File(client + "/java/projects/AJOAdvanced");
+				Utils.runSystemCommand("git", "clone", "AJOAdvanced.git/",
+						file.getAbsolutePath());
+				Files.walkFileTree(file.toPath(), defineFileVisitorPermChange());
+				Utils.runSystemCommand("cd", file.getAbsolutePath(), "&&", "git",
+						"checkout", "template");
+			}
+			else {
+				logger.debug(String.format("cloning AJOBasic project for client %s",
+						client));
+				File file = new File(client + "/java/projects/AJOBasic");
+				Utils.runSystemCommand("git", "clone", "AJOBasic.git/",
+						file.getAbsolutePath());
+				Files.walkFileTree(file.toPath(), defineFileVisitorPermChange());
+			}
+		}
+
+	}
+
+	/**
 	 * Initializes all clients.
 	 */
 	public void init() {
@@ -78,6 +112,10 @@ public class Init {
 			initGitPrompt();
 			initInfosystems();
 			initJfopServerInstances();
+			initJfopServerDatFiles();
+			initAjoPerfProducts();
+			initOwDirs();
+			cloneGitRepo();
 		}
 		catch (CommandException | IOException e) {
 			System.out.println("An error occurred: " + e.getMessage());
@@ -194,7 +232,7 @@ public class Init {
 			logger.debug(String.format(
 					"initializing java/projects folder for client %s", client));
 
-			FileVisitor<Path> fileVisitor = defineFileVisitor();
+			FileVisitor<Path> fileVisitor = defineFileVisitorForDeletion();
 
 			File directory = new File(client + "/java", "projects");
 			try (DirectoryStream<Path> directoryStream =
@@ -207,6 +245,30 @@ public class Init {
 				logger.fatal(e.getMessage(), e);
 				throw new RuntimeException(e);
 			}
+		}
+	}
+
+	/**
+	 * Deletes all jfopserver.*.dat files.
+	 */
+	public void initJfopServerDatFiles() {
+		for (String client : clients) {
+			logger.debug(String.format(
+					"deleting jfopserver.*.dat files for client %s", client));
+			File dir = new File(client);
+			FilenameFilter filter = new FilenameFilter() {
+
+				@Override
+				public boolean accept(File dir, String name) {
+					return name.matches("jfopserver\\..+\\.dat");
+				}
+			};
+			File[] files = dir.listFiles(filter);
+			int no = files.length;
+			for (File file : files) {
+				file.delete();
+			}
+			logger.debug(String.format("%d jfopserver.*.dat files were deleted", no));
 		}
 	}
 
@@ -256,6 +318,37 @@ public class Init {
 	}
 
 	/**
+	 * Empties all ow directories.
+	 */
+	public void initOwDirs() {
+		for (String client : clients) {
+			logger.debug(String.format("initializing ow directories for client %s",
+					client));
+			int no = 0, dirNo = 0;
+			File mandDir = new File(client);
+			FilenameFilter filter = new FilenameFilter() {
+
+				@Override
+				public boolean accept(File dir, String name) {
+					return name.matches("ow[a-z0-9]+");
+				}
+			};
+
+			File[] dirs = mandDir.listFiles(filter);
+			dirNo = dirs.length;
+			for (File dir : dirs) {
+				File[] files = dir.listFiles();
+				no = no + files.length;
+				for (File file : files) {
+					file.delete();
+				}
+			}
+			logger.debug(String.format("%d files in %d directories deleted", no,
+					dirNo));
+		}
+	}
+
+	/**
 	 * Inserts or replaces .vimrc.
 	 *
 	 * @throws IOException Thrown if file could not be copied or InputStream instance
@@ -282,7 +375,7 @@ public class Init {
 		logger.debug(String.format(
 				"Doing JFOP Server setup for advanced training for client %s",
 				client));
-		String no = client.substring(client.length() - 1);
+		String no = getClientNo(client);
 		logger.debug(String.format("Number of client %s was %s", client, no));
 		JFOPServerEditor jfopServerEditor = ctx.newObject(JFOPServerEditor.class);
 		jfopServerEditor.setSwd("DEBUGSY" + no);
@@ -386,7 +479,7 @@ public class Init {
 	 *
 	 * @return A FileVisitor instance.
 	 */
-	private FileVisitor<Path> defineFileVisitor() {
+	private FileVisitor<Path> defineFileVisitorForDeletion() {
 		return new FileVisitor<Path>() {
 
 			@Override
@@ -419,6 +512,49 @@ public class Init {
 	}
 
 	/**
+	 * Defines a new instance of FileVisitor to delete the given directory
+	 * recursively.
+	 *
+	 * @return A FileVisitor instance.
+	 */
+	private FileVisitor<Path> defineFileVisitorPermChange() {
+		return new FileVisitor<Path>() {
+
+			@Override
+			public FileVisitResult postVisitDirectory(Path dir, IOException exc)
+					throws IOException {
+				if (exc != null) {
+					throw new RuntimeException(exc);
+				}
+				return FileVisitResult.CONTINUE;
+			}
+
+			@Override
+			public FileVisitResult preVisitDirectory(Path dir,
+					BasicFileAttributes attrs) throws IOException {
+				chmod("rwxrwx---", dir);
+				chown(currClient, dir);
+				return FileVisitResult.CONTINUE;
+			}
+
+			@Override
+			public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
+					throws IOException {
+				chmod("rwxrwx---", file);
+				chown(currClient, file);
+				return FileVisitResult.CONTINUE;
+			}
+
+			@Override
+			public FileVisitResult visitFileFailed(Path file, IOException exc)
+					throws IOException {
+				throw new RuntimeException(exc);
+			}
+
+		};
+	}
+
+	/**
 	 * Deletes all JFOP Server instances.
 	 *
 	 * @param ctx The database context.
@@ -433,6 +569,21 @@ public class Init {
 			jfopServer.delete();
 		}
 		logger.debug(String.format("%d JFOP Server instances were deleted", no));
+	}
+
+	/**
+	 * Extracts the client number from the client name.
+	 * E.g.: 17erp1 -> 1 i7erp12 -> 12 schul01 -> 1
+	 *
+	 * @param client The client name.
+	 * @return The client number.
+	 */
+	private String getClientNo(String client) {
+		String no = client.substring(client.length() - 2);
+		if ((!no.matches("[0-9]+")) || (no.matches("[0][0-9]+"))) {
+			no = no.substring(no.length() - 1);
+		}
+		return no;
 	}
 
 	/**
