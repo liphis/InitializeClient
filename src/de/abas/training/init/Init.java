@@ -3,9 +3,23 @@ package de.abas.training.init;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.DirectoryStream;
+import java.nio.file.FileSystems;
+import java.nio.file.FileVisitResult;
+import java.nio.file.FileVisitor;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
+import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.attribute.GroupPrincipal;
+import java.nio.file.attribute.PosixFileAttributeView;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
+import java.nio.file.attribute.UserPrincipal;
+import java.nio.file.attribute.UserPrincipalLookupService;
 import java.util.ArrayList;
+import java.util.Set;
 
 import org.apache.log4j.Logger;
 
@@ -106,7 +120,7 @@ public class Init {
 	public void initBashrc() throws IOException {
 		for (String client : clients) {
 			logger.debug(String.format("initializing .bashrc for client %s", client));
-			copyFile(client, "", ".bashrc", "770");
+			copyFile(client, "", ".bashrc", "rwxrwx---");
 		}
 	}
 
@@ -119,7 +133,7 @@ public class Init {
 	public void initFopTxt() throws IOException {
 		for (String client : clients) {
 			logger.debug(String.format("initializing fop.txt for client %s", client));
-			copyFile(client, "", "fop.txt", "660");
+			copyFile(client, "", "fop.txt", "rw-rw----");
 		}
 
 	}
@@ -134,7 +148,7 @@ public class Init {
 		for (String client : clients) {
 			logger.debug(String.format("initializing git-prompt.sh for client %s",
 					client));
-			copyFile(client, "", "git-prompt.sh", "770");
+			copyFile(client, "", "git-prompt.sh", "rwxrwx---");
 		}
 	}
 
@@ -179,7 +193,20 @@ public class Init {
 		for (String client : clients) {
 			logger.debug(String.format(
 					"initializing java/projects folder for client %s", client));
-			Utils.runSystemCommand("rm -rf " + client + "/java/projects/*");
+
+			FileVisitor<Path> fileVisitor = defineFileVisitor();
+
+			File directory = new File(client + "/java", "projects");
+			try (DirectoryStream<Path> directoryStream =
+					Files.newDirectoryStream(directory.toPath())) {
+				for (Path path : directoryStream) {
+					Files.walkFileTree(path, fileVisitor);
+				}
+			}
+			catch (IOException e) {
+				logger.fatal(e.getMessage(), e);
+				throw new RuntimeException(e);
+			}
 		}
 	}
 
@@ -223,7 +250,7 @@ public class Init {
 		for (String client : clients) {
 			logger.debug(String.format(
 					"initializing mandant.classpath for client %s", client));
-			copyFile(client, "java/", "mandant.classpath", "770");
+			copyFile(client, "java/", "mandant.classpath", "rwxrwx---");
 		}
 
 	}
@@ -237,7 +264,7 @@ public class Init {
 	public void initVimrc() throws IOException {
 		for (String client : clients) {
 			logger.debug(String.format("initializing .vimrc for client %s", client));
-			copyFile(client, "", ".vimrc", "660");
+			copyFile(client, "", ".vimrc", "rw-rw----");
 		}
 	}
 
@@ -281,32 +308,114 @@ public class Init {
 	}
 
 	/**
+	 * Changes file permissions.
+	 *
+	 * @param rights File permissions as String (e.g. rwxrwx---).
+	 * @param path Path of the file for which to change permissions.
+	 */
+	private void chmod(String rights, Path path) {
+		try {
+			Set<PosixFilePermission> perms = PosixFilePermissions.fromString(rights);
+			Files.setPosixFilePermissions(path, perms);
+		}
+		catch (IOException e) {
+			String message =
+					"Changing permissions of file " + path.getFileName()
+					+ " failed: " + e.getMessage();
+			logger.fatal(message, e);
+			throw new RuntimeException(message, e);
+		}
+	}
+
+	/**
+	 * Changes owner and group of file.
+	 *
+	 * @param owner The owner of the file (group is always users).
+	 * @param path Path of the file for which to change owner and group.
+	 */
+	private void chown(String owner, Path path) {
+		try {
+			UserPrincipalLookupService lookupService =
+					FileSystems.getDefault().getUserPrincipalLookupService();
+			UserPrincipal userPrincipal = lookupService.lookupPrincipalByName(owner);
+			GroupPrincipal groupPrincipal =
+					lookupService.lookupPrincipalByGroupName("users");
+			PosixFileAttributeView fileAttributeView =
+					Files.getFileAttributeView(path, PosixFileAttributeView.class,
+							LinkOption.NOFOLLOW_LINKS);
+			fileAttributeView.setOwner(userPrincipal);
+			fileAttributeView.setGroup(groupPrincipal);
+		}
+		catch (IOException e) {
+			String message =
+					"Setting owner and group for file " + path.getFileName()
+							+ " failed: " + e.getMessage();
+			logger.fatal(message, e);
+			throw new RuntimeException(message, e);
+		}
+	}
+
+	/**
 	 * Copies the specified file as resource from jar to the $MANDANTDIR of the
 	 * specified client. Sets owner to the specified client and group to users. Sets
 	 * the access rights as specified.
 	 *
 	 * @param client The client to copy to.
-	 * @param path The path to the file.
-	 * @param file The file to copy.
+	 * @param filePath The path to the file.
+	 * @param fileName The file to copy.
 	 * @param rights The access rights of the target file.
 	 * @throws IOException Thrown if file could not be copied or InputStream instance
 	 * could not be closed.
 	 */
-	private void copyFile(String client, String path, String file, String rights)
-			throws IOException {
-		InputStream in = null;
-		try {
-			in = getClass().getClassLoader().getResourceAsStream("files/" + file);
-			Files.copy(in, new File(client + "/" + path + file).toPath(),
-					StandardCopyOption.REPLACE_EXISTING);
-			Utils.runSystemCommand("chown " + client + ":users " + client + "/"
-					+ path + file);
-			Utils.runSystemCommand("chmod " + rights + " " + client + "/" + path
-					+ file);
+	private void copyFile(String client, String filePath, String fileName,
+			String rights) throws IOException {
+		try (InputStream in =
+				getClass().getClassLoader().getResourceAsStream(fileName)) {
+			File dest = new File(client + "/" + filePath, fileName);
+			Path path = dest.toPath();
+			Files.copy(in, path, StandardCopyOption.REPLACE_EXISTING);
+
+			chown(client, path);
+			chmod(rights, path);
 		}
-		finally {
-			in.close();
-		}
+	}
+
+	/**
+	 * Defines a new instance of FileVisitor to delete the given directory
+	 * recursively.
+	 *
+	 * @return A FileVisitor instance.
+	 */
+	private FileVisitor<Path> defineFileVisitor() {
+		return new FileVisitor<Path>() {
+
+			@Override
+			public FileVisitResult postVisitDirectory(Path dir, IOException exc)
+					throws IOException {
+				Files.delete(dir);
+				return FileVisitResult.CONTINUE;
+			}
+
+			@Override
+			public FileVisitResult preVisitDirectory(Path dir,
+					BasicFileAttributes attrs) throws IOException {
+				return FileVisitResult.CONTINUE;
+			}
+
+			@Override
+			public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
+					throws IOException {
+				Files.delete(file);
+				return FileVisitResult.CONTINUE;
+			}
+
+			@Override
+			public FileVisitResult visitFileFailed(Path file, IOException exc)
+					throws IOException {
+				throw new RuntimeException(exc);
+			}
+
+		};
 	}
 
 	/**

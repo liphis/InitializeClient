@@ -2,7 +2,6 @@ package de.abas.training.init;
 
 import static org.junit.Assert.assertNotEquals;
 
-import java.io.BufferedReader;
 import java.util.ArrayList;
 
 import org.junit.Assert;
@@ -10,7 +9,6 @@ import org.junit.Test;
 
 import de.abas.erp.db.DbContext;
 import de.abas.erp.db.util.ContextHelper;
-import de.abas.training.util.Utils;
 
 public class InitTest {
 
@@ -37,12 +35,6 @@ public class InitTest {
 		Assert.assertEquals("Server is schulung", "schulung", init.server);
 		Assert.assertEquals("Two clients within clients Array", 2,
 				init.clients.length);
-	}
-
-	@Test
-	public void runSystemCommandTest() throws Exception {
-		BufferedReader bufferedReader = Utils.runSystemCommand("cmd echo %cd%");
-		assertNotEquals("BufferedReader instance is not null", null, bufferedReader);
 	}
 
 }
