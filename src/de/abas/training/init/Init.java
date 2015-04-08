@@ -83,8 +83,12 @@ public class Init {
 				Utils.runSystemCommand("git", "clone", "AJOAdvanced.git/",
 						file.getAbsolutePath());
 				Files.walkFileTree(file.toPath(), defineFileVisitorPermChange());
-				Utils.runSystemCommand("cd", file.getAbsolutePath(), "&&", "git",
-						"checkout", "template");
+				logger.debug("Resetting git directory");
+				Utils.runSystemCommand(file.getAbsoluteFile(), "git", "reset",
+						"--hard", "HEAD");
+				logger.debug("Branch template checked out");
+				Utils.runSystemCommand(file.getAbsoluteFile(), "git", "checkout",
+						"template");
 			}
 			else {
 				logger.debug(String.format("cloning AJOBasic project for client %s",
@@ -210,15 +214,21 @@ public class Init {
 				Infosystem infosystem = selectInfosystem(ctx, infosystemName);
 				InfosystemEditor infosytemEditor = infosystem.createEditor();
 				infosytemEditor.open(EditorAction.UPDATE);
-				initHeaderFields(infosytemEditor);
+				boolean changed = initHeaderFields(infosytemEditor);
 				Iterable<Row> editableRows =
 						infosytemEditor.table().getEditableRows();
 				for (Row row : editableRows) {
 					if (!row.getEFOPSymbol().isEmpty()) {
+						changed = true;
 						initRowFields(row);
 					}
 				}
-				infosytemEditor.commit();
+				if (changed) {
+					infosytemEditor.commit();
+				}
+				else {
+					infosytemEditor.abort();
+				}
 			}
 			ctx.close();
 		}
@@ -383,9 +393,13 @@ public class Init {
 		jfopServerEditor.setJfopServerInstanceName("DEBUGSY" + no);
 		int portSuffix = Integer.parseInt(no);
 		logger.debug("Client number successfully converted to integer");
-		jfopServerEditor.setJfopServerDebuggerPort(8010 + portSuffix);
-		logger.debug(String.format("Debugger port field set to port number %d",
-				jfopServerEditor.getJfopServerDebuggerPort()));
+		int port = 8010 + portSuffix;
+		boolean available = Utils.available(port);
+		if (available) {
+			jfopServerEditor.setJfopServerDebuggerPort(port);
+			logger.debug(String.format("Debugger port field set to port number %d",
+					jfopServerEditor.getJfopServerDebuggerPort()));
+		}
 		jfopServerEditor.commit();
 		logger.debug(String.format(
 				"New JFOP Server instance %s created for debugging in client %s",
@@ -603,27 +617,87 @@ public class Init {
 	 * Resets header fields of infosystem.
 	 *
 	 * @param infosytemEditor The editor instance of the current infosystem.
+	 * @return Whether or not any field has been changed.
 	 */
-	private void initHeaderFields(InfosystemEditor infosytemEditor) {
-		infosytemEditor.setArchiveFOP("");
-		infosytemEditor.setReportHead("");
-		infosytemEditor.setReportFoot("");
-		infosytemEditor.setGrpHead("");
-		infosytemEditor.setGrpFoot("");
-		infosytemEditor.setTab("");
-		infosytemEditor.setScrEnterEFOP("");
-		infosytemEditor.setScrValidationEFOP("");
-		infosytemEditor.setScrExitEFOP("");
-		infosytemEditor.setScrEndEFOP("");
-		infosytemEditor.setScrCancelEFOP("");
-		infosytemEditor.setRowInsBeforeEFOP("");
-		infosytemEditor.setRowInsAfterEFOP("");
-		infosytemEditor.setRowDelBeforeEFOP("");
-		infosytemEditor.setRowDelAfterEFOP("");
-		infosytemEditor.setRowHighlightEFOP("");
-		infosytemEditor.setRowMoveBeforeEFOP("");
-		infosytemEditor.setRowMoveAfterEFOP("");
-		infosytemEditor.setRowChangeEFOP("");
+	private boolean initHeaderFields(InfosystemEditor infosytemEditor) {
+		boolean changed = false;
+		if (!infosytemEditor.getArchiveFOP().isEmpty()) {
+			infosytemEditor.setArchiveFOP("");
+			changed = true;
+		}
+		if (!infosytemEditor.getReportHead().isEmpty()) {
+			infosytemEditor.setReportHead("");
+			changed = true;
+		}
+		if (!infosytemEditor.getReportFoot().isEmpty()) {
+			infosytemEditor.setReportFoot("");
+			changed = true;
+		}
+		if (!infosytemEditor.getGrpHead().isEmpty()) {
+			infosytemEditor.setGrpHead("");
+			changed = true;
+		}
+		if (!infosytemEditor.getGrpFoot().isEmpty()) {
+			infosytemEditor.setGrpFoot("");
+			changed = true;
+		}
+		if (!infosytemEditor.getTab().isEmpty()) {
+			infosytemEditor.setTab("");
+			changed = true;
+		}
+		if (!infosytemEditor.getScrEnterEFOP().isEmpty()) {
+			infosytemEditor.setScrEnterEFOP("");
+			changed = true;
+		}
+		if (!infosytemEditor.getScrValidationEFOP().isEmpty()) {
+			infosytemEditor.setScrValidationEFOP("");
+			changed = true;
+		}
+		if (!infosytemEditor.getScrExitEFOP().isEmpty()) {
+			infosytemEditor.setScrExitEFOP("");
+			changed = true;
+		}
+		if (!infosytemEditor.getScrEndEFOP().isEmpty()) {
+			infosytemEditor.setScrEndEFOP("");
+			changed = true;
+		}
+		if (!infosytemEditor.getScrCancelEFOP().isEmpty()) {
+			infosytemEditor.setScrCancelEFOP("");
+			changed = true;
+		}
+		if (!infosytemEditor.getRowInsBeforeEFOP().isEmpty()) {
+			infosytemEditor.setRowInsBeforeEFOP("");
+			changed = true;
+		}
+		if (!infosytemEditor.getRowInsAfterEFOP().isEmpty()) {
+			infosytemEditor.setRowInsAfterEFOP("");
+			changed = true;
+		}
+		if (!infosytemEditor.getRowDelBeforeEFOP().isEmpty()) {
+			infosytemEditor.setRowDelBeforeEFOP("");
+			changed = true;
+		}
+		if (!infosytemEditor.getRowDelBeforeEFOP().isEmpty()) {
+			infosytemEditor.setRowDelAfterEFOP("");
+			changed = true;
+		}
+		if (!infosytemEditor.getRowHighlightEFOP().isEmpty()) {
+			infosytemEditor.setRowHighlightEFOP("");
+			changed = true;
+		}
+		if (!infosytemEditor.getRowMoveBeforeEFOP().isEmpty()) {
+			infosytemEditor.setRowMoveBeforeEFOP("");
+			changed = true;
+		}
+		if (!infosytemEditor.getRowMoveAfterEFOP().isEmpty()) {
+			infosytemEditor.setRowMoveAfterEFOP("");
+			changed = true;
+		}
+		if (!infosytemEditor.getRowChangeEFOP().isEmpty()) {
+			infosytemEditor.setRowChangeEFOP("");
+			changed = true;
+		}
+		return changed;
 	}
 
 	/**

@@ -1,12 +1,35 @@
 package de.abas.training.util;
 
+import java.io.File;
 import java.io.IOException;
+import java.net.DatagramSocket;
+import java.net.ServerSocket;
 
 import org.apache.log4j.Logger;
 
 public class Utils {
 
 	private static Logger logger = getLogger();
+
+	/**
+	 * Determines whether a specified port is available or not.
+	 *
+	 * @param port Port to check availability.
+	 * @return True if the port is available, otherwise false.
+	 */
+	public static boolean available(int port) {
+		try (ServerSocket ss = new ServerSocket(port);
+				DatagramSocket ds = new DatagramSocket(port)) {
+			ss.setReuseAddress(true);
+			ds.setReuseAddress(true);
+			return true;
+		}
+		catch (IOException e) {
+			logger.error(String.format("Port %d is already in use: %s", port,
+					e.getMessage()));
+			return false;
+		}
+	}
 
 	/**
 	 * Initializes a log4j Logger instance for logging.
@@ -22,12 +45,44 @@ public class Utils {
 	}
 
 	/**
-	 * Runs a system command and returns the console output as a BufferedReader
-	 * instance.
+	 * Runs a system command.
 	 *
-	 * @param command The command to execute.
-	 * @return The console output as a BufferedReader instance.
-	 * @throws InterruptedException
+	 * @param directory Directory in which to execute command.
+	 * @param commandAndArgs Command to execute.
+	 * @throws IOException Thrown if an error occurs while executing the commands.
+	 */
+	public static void runSystemCommand(File directory, String... commandAndArgs)
+			throws IOException {
+		try {
+			ProcessBuilder pb = new ProcessBuilder();
+			pb = pb.directory(directory);
+			logger.debug(String.format("Execution directory set to %s", pb
+					.directory().getAbsolutePath()));
+			pb.command(commandAndArgs);
+			Process process = pb.start();
+			if (process != null) {
+				int exitCode = process.waitFor();
+				if (exitCode != 0) {
+					String message =
+							"Command execution failed with exit code " + exitCode;
+					logger.fatal(message);
+					throw new RuntimeException(message);
+				}
+			}
+		}
+		catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			String message = "Command execution interrupted";
+			logger.fatal(message, e);
+			throw new RuntimeException(message);
+		}
+	}
+
+	/**
+	 * Runs a system command.
+	 *
+	 * @param commandAndArgs Command to execute.
+	 * @throws IOException Thrown if an error occurs while executing the commands.
 	 */
 	public static void runSystemCommand(String... commandAndArgs) throws IOException {
 		try {
