@@ -400,6 +400,9 @@ public class Init {
 			logger.debug(String.format("Debugger port field set to port number %d",
 					jfopServerEditor.getJfopServerDebuggerPort()));
 		}
+		String arguments = jfopServerEditor.getJfopServerJVMArguments();
+		jfopServerEditor.setJfopServerJVMArguments("-Djfop.server.devMode=3 "
+				+ arguments);
 		jfopServerEditor.commit();
 		logger.debug(String.format(
 				"New JFOP Server instance %s created for debugging in client %s",
@@ -428,7 +431,7 @@ public class Init {
 		catch (IOException e) {
 			String message =
 					"Changing permissions of file " + path.getFileName()
-					+ " failed: " + e.getMessage();
+							+ " failed: " + e.getMessage();
 			logger.fatal(message, e);
 			throw new RuntimeException(message, e);
 		}
@@ -456,7 +459,7 @@ public class Init {
 		catch (IOException e) {
 			String message =
 					"Setting owner and group for file " + path.getFileName()
-							+ " failed: " + e.getMessage();
+					+ " failed: " + e.getMessage();
 			logger.fatal(message, e);
 			throw new RuntimeException(message, e);
 		}
