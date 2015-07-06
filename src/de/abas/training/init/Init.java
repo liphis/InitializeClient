@@ -259,18 +259,18 @@ public class Init {
 	}
 
 	/**
-	 * Deletes all jfopserver.*.dat files.
+	 * Deletes all jfopserver.*.dat* files.
 	 */
 	public void initJfopServerDatFiles() {
 		for (String client : clients) {
 			logger.debug(String.format(
-					"deleting jfopserver.*.dat files for client %s", client));
+					"deleting jfopserver.*.dat* files for client %s", client));
 			File dir = new File(client);
 			FilenameFilter filter = new FilenameFilter() {
 
 				@Override
 				public boolean accept(File dir, String name) {
-					return name.matches("jfopserver\\..+\\.dat");
+					return name.matches("jfopserver\\..+\\.dat\\.*");
 				}
 			};
 			File[] files = dir.listFiles(filter);
@@ -278,7 +278,8 @@ public class Init {
 			for (File file : files) {
 				file.delete();
 			}
-			logger.debug(String.format("%d jfopserver.*.dat files were deleted", no));
+			logger.debug(String
+					.format("%d jfopserver.*.dat* files were deleted", no));
 		}
 	}
 
