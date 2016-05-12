@@ -20,6 +20,7 @@ import java.nio.file.attribute.PosixFilePermissions;
 import java.nio.file.attribute.UserPrincipal;
 import java.nio.file.attribute.UserPrincipalLookupService;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 import org.apache.log4j.Logger;
@@ -36,6 +37,7 @@ import de.abas.erp.db.schema.infosystem.InfosystemEditor.Row;
 import de.abas.erp.db.schema.infrastructure.JFOPServer;
 import de.abas.erp.db.schema.infrastructure.JFOPServerEditor;
 import de.abas.erp.db.schema.part.Product;
+import de.abas.erp.db.schema.part.ProductEditor;
 import de.abas.erp.db.selection.Conditions;
 import de.abas.erp.db.selection.SelectionBuilder;
 import de.abas.erp.db.util.ContextHelper;
@@ -53,49 +55,42 @@ public class Init {
 
 	public Init(String trainingType, String server, String... clients) {
 		switch (trainingType) {
-			case "basic":
-				advanced = false;
-				break;
-			case "advanced":
-				advanced = true;
-				break;
-			default:
-				throw new RuntimeException("Training type not valid");
+		case "basic":
+			advanced = false;
+			break;
+		case "advanced":
+			advanced = true;
+			break;
+		default:
+			throw new RuntimeException("Training type not valid");
 		}
 		this.server = server;
 		this.clients = clients;
 	}
 
 	/**
-	 * Clones git repository for training into java/projects.
-	 * Chooses right repository according to basic or advanced training.
-	 * Checks out template branch for advanced training.
+	 * Clones git repository for training into java/projects. Chooses right
+	 * repository according to basic or advanced training. Checks out template
+	 * branch for advanced training.
 	 *
 	 * @throws IOException
 	 */
 	public void cloneGitRepo() throws IOException {
-		for (String client : clients) {
+		for (final String client : clients) {
 			currClient = client;
 			if (advanced) {
-				logger.debug(String.format(
-						"cloning AJOAdvanced project for client %s", client));
-				File file = new File(client + "/java/projects/AJOAdvanced");
-				Utils.runSystemCommand("git", "clone", "AJOAdvanced.git/",
-						file.getAbsolutePath());
+				logger.debug(String.format("cloning AJOAdvanced project for client %s", client));
+				final File file = new File(client + "/java/projects/AJOAdvanced");
+				Utils.runSystemCommand("git", "clone", "AJOAdvanced.git/", file.getAbsolutePath());
 				Files.walkFileTree(file.toPath(), defineFileVisitorPermChange());
 				logger.debug("Resetting git directory");
-				Utils.runSystemCommand(file.getAbsoluteFile(), "git", "reset",
-						"--hard", "HEAD");
+				Utils.runSystemCommand(file.getAbsoluteFile(), "git", "reset", "--hard", "HEAD");
 				logger.debug("Branch template checked out");
-				Utils.runSystemCommand(file.getAbsoluteFile(), "git", "checkout",
-						"template");
-			}
-			else {
-				logger.debug(String.format("cloning AJOBasic project for client %s",
-						client));
-				File file = new File(client + "/java/projects/AJOBasic");
-				Utils.runSystemCommand("git", "clone", "AJOBasic.git/",
-						file.getAbsolutePath());
+				Utils.runSystemCommand(file.getAbsoluteFile(), "git", "checkout", "template");
+			} else {
+				logger.debug(String.format("cloning AJOBasic project for client %s", client));
+				final File file = new File(client + "/java/projects/AJOBasic");
+				Utils.runSystemCommand("git", "clone", "AJOBasic.git/", file.getAbsolutePath());
 				Files.walkFileTree(file.toPath(), defineFileVisitorPermChange());
 			}
 		}
@@ -114,14 +109,15 @@ public class Init {
 			initBashrc();
 			initVimrc();
 			initGitPrompt();
+			transferInfosystems();
 			initInfosystems();
+			initObjects();
 			initJfopServerInstances();
 			initJfopServerDatFiles();
 			initAjoPerfProducts();
 			initOwDirs();
 			cloneGitRepo();
-		}
-		catch (CommandException | IOException e) {
+		} catch (CommandException | IOException e) {
 			System.out.println("An error occurred: " + e.getMessage());
 			logger.fatal(e.getMessage(), e);
 			return;
@@ -132,22 +128,18 @@ public class Init {
 	 * Removes all AJOPERF products.
 	 */
 	public void initAjoPerfProducts() {
-		for (String client : clients) {
-			DbContext ctx =
-					ContextHelper.createClientContext(server, 6550, client, "sy",
-							"Deleting AJOPERF products");
-			logger.debug(String.format("deleting all AJOPERF products in client %s",
-					client));
-			SelectionBuilder<Product> selectionBuilder =
-					SelectionBuilder.create(Product.class);
+		for (final String client : clients) {
+			final DbContext ctx = ContextHelper.createClientContext(server, 6550, client, "sy",
+					"Deleting AJOPERF products");
+			logger.debug(String.format("deleting all AJOPERF products in client %s", client));
+			final SelectionBuilder<Product> selectionBuilder = SelectionBuilder.create(Product.class);
 			selectionBuilder.add(Conditions.starts(Product.META.swd, "AJOPERF"));
-			Query<Product> query = ctx.createQuery(selectionBuilder.build());
-			int no = query.execute().size();
-			for (Product product : query) {
+			final Query<Product> query = ctx.createQuery(selectionBuilder.build());
+			final int no = query.execute().size();
+			for (final Product product : query) {
 				product.delete();
 			}
-			logger.debug(String.format("%d products with swd AJOPERF were deleted",
-					no));
+			logger.debug(String.format("%d products with swd AJOPERF were deleted", no));
 			ctx.close();
 		}
 
@@ -156,11 +148,12 @@ public class Init {
 	/**
 	 * Inserts or replaces .bashrc.
 	 *
-	 * @throws IOException Thrown if file could not be copied or InputStream instance
-	 * could not be closed.
+	 * @throws IOException
+	 *             Thrown if file could not be copied or InputStream instance
+	 *             could not be closed.
 	 */
 	public void initBashrc() throws IOException {
-		for (String client : clients) {
+		for (final String client : clients) {
 			logger.debug(String.format("initializing .bashrc for client %s", client));
 			copyFile(client, "", ".bashrc", "rwxrwx---");
 		}
@@ -169,11 +162,12 @@ public class Init {
 	/**
 	 * Replaces fop.txt with default fop.txt.
 	 *
-	 * @throws IOException Thrown if file could not be copied or InputStream instance
-	 * could not be closed.
+	 * @throws IOException
+	 *             Thrown if file could not be copied or InputStream instance
+	 *             could not be closed.
 	 */
 	public void initFopTxt() throws IOException {
-		for (String client : clients) {
+		for (final String client : clients) {
 			logger.debug(String.format("initializing fop.txt for client %s", client));
 			copyFile(client, "", "fop.txt", "rw-rw----");
 		}
@@ -183,13 +177,13 @@ public class Init {
 	/**
 	 * Inserts or replaces git-prompt.sh
 	 *
-	 * @throws IOException Thrown if file could not be copied or InputStream instance
-	 * could not be closed.
+	 * @throws IOException
+	 *             Thrown if file could not be copied or InputStream instance
+	 *             could not be closed.
 	 */
 	public void initGitPrompt() throws IOException {
-		for (String client : clients) {
-			logger.debug(String.format("initializing git-prompt.sh for client %s",
-					client));
+		for (final String client : clients) {
+			logger.debug(String.format("initializing git-prompt.sh for client %s", client));
 			copyFile(client, "", "git-prompt.sh", "rwxrwx---");
 		}
 	}
@@ -197,27 +191,22 @@ public class Init {
 	/**
 	 * Initializes all infosystems used during AJO trainings.
 	 *
-	 * @throws CommandException Thrown if infosystem could not be opened for editing.
+	 * @throws CommandException
+	 *             Thrown if infosystem could not be opened for editing.
 	 */
 	public void initInfosystems() throws CommandException {
-		for (String client : clients) {
-			logger.debug(String.format("initializing infosystems for client %s",
-					client));
-			DbContext ctx =
-					ContextHelper.createClientContext(server, 6550, client, "sy",
-							"Initializing client");
-			ArrayList<String> infosystemNames = getInfosystems();
-			for (String infosystemName : infosystemNames) {
-				logger.debug(String.format(
-						"initializing infosystem %s for client %s", infosystemName,
-						client));
-				Infosystem infosystem = selectInfosystem(ctx, infosystemName);
-				InfosystemEditor infosytemEditor = infosystem.createEditor();
+		for (final String client : clients) {
+			logger.debug(String.format("initializing infosystems for client %s", client));
+			final DbContext ctx = ContextHelper.createClientContext(server, 6550, client, "sy", "Initializing client");
+			final ArrayList<String> infosystemNames = getInfosystems();
+			for (final String infosystemName : infosystemNames) {
+				logger.debug(String.format("initializing infosystem %s for client %s", infosystemName, client));
+				final Infosystem infosystem = selectInfosystem(ctx, infosystemName);
+				final InfosystemEditor infosytemEditor = infosystem.createEditor();
 				infosytemEditor.open(EditorAction.UPDATE);
 				boolean changed = initHeaderFields(infosytemEditor);
-				Iterable<Row> editableRows =
-						infosytemEditor.table().getEditableRows();
-				for (Row row : editableRows) {
+				final Iterable<Row> editableRows = infosytemEditor.table().getEditableRows();
+				for (final Row row : editableRows) {
 					if (!row.getEFOPSymbol().isEmpty()) {
 						changed = true;
 						initRowFields(row);
@@ -225,8 +214,7 @@ public class Init {
 				}
 				if (changed) {
 					infosytemEditor.commit();
-				}
-				else {
+				} else {
 					infosytemEditor.abort();
 				}
 			}
@@ -238,20 +226,17 @@ public class Init {
 	 * Removes all projects from $MANDANTDIR/java/projects.
 	 */
 	public void initJavaProjects() {
-		for (String client : clients) {
-			logger.debug(String.format(
-					"initializing java/projects folder for client %s", client));
+		for (final String client : clients) {
+			logger.debug(String.format("initializing java/projects folder for client %s", client));
 
-			FileVisitor<Path> fileVisitor = defineFileVisitorForDeletion();
+			final FileVisitor<Path> fileVisitor = defineFileVisitorForDeletion();
 
-			File directory = new File(client + "/java", "projects");
-			try (DirectoryStream<Path> directoryStream =
-					Files.newDirectoryStream(directory.toPath())) {
-				for (Path path : directoryStream) {
+			final File directory = new File(client + "/java", "projects");
+			try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(directory.toPath())) {
+				for (final Path path : directoryStream) {
 					Files.walkFileTree(path, fileVisitor);
 				}
-			}
-			catch (IOException e) {
+			} catch (final IOException e) {
 				logger.fatal(e.getMessage(), e);
 				throw new RuntimeException(e);
 			}
@@ -262,49 +247,45 @@ public class Init {
 	 * Deletes all jfopserver.*.dat* files.
 	 */
 	public void initJfopServerDatFiles() {
-		for (String client : clients) {
-			logger.debug(String.format(
-					"deleting jfopserver.*.dat* files for client %s", client));
-			File dir = new File(client);
-			FilenameFilter filter = new FilenameFilter() {
+		for (final String client : clients) {
+			logger.debug(String.format("deleting jfopserver.*.dat* files for client %s", client));
+			final File dir = new File(client);
+			final FilenameFilter filter = new FilenameFilter() {
 
 				@Override
 				public boolean accept(File dir, String name) {
 					return name.matches("jfopserver\\..+\\.dat\\.*");
 				}
 			};
-			File[] files = dir.listFiles(filter);
-			int no = files.length;
-			for (File file : files) {
+			final File[] files = dir.listFiles(filter);
+			final int no = files.length;
+			for (final File file : files) {
 				file.delete();
 			}
-			logger.debug(String
-					.format("%d jfopserver.*.dat* files were deleted", no));
+			logger.debug(String.format("%d jfopserver.*.dat* files were deleted", no));
 		}
 	}
 
 	/**
 	 * Initializes the JFOP Server instances according to the training type.
 	 *
-	 * @throws CommandException Thrown if password could not be opened for editing.
+	 * @throws CommandException
+	 *             Thrown if password could not be opened for editing.
 	 */
 	public void initJfopServerInstances() throws CommandException {
-		for (String client : clients) {
-			logger.debug(String.format(
-					"initializing JFOP Server instances for client %s", client));
-			DbContext ctx =
-					ContextHelper.createClientContext(server, 6550, client, "sy",
-							"Initialization for training");
+		for (final String client : clients) {
+			logger.debug(String.format("initializing JFOP Server instances for client %s", client));
+			final DbContext ctx = ContextHelper.createClientContext(server, 6550, client, "sy",
+					"Initialization for training");
 			deleteAllJfopServerInstances(ctx);
-			Password password = selectPassword(ctx);
-			PasswordEditor passwordEditor = password.createEditor();
+			final Password password = selectPassword(ctx);
+			final PasswordEditor passwordEditor = password.createEditor();
 			passwordEditor.open(EditorAction.UPDATE);
-			JFOPServer jfopServerInit = null;
+			final JFOPServer jfopServerInit = null;
 			passwordEditor.setJfopServer(jfopServerInit);
 			passwordEditor.commit();
-			logger.debug(String
-					.format("JFOP Server field in password definition of client %s successfully initialized",
-							client));
+			logger.debug(String.format("JFOP Server field in password definition of client %s successfully initialized",
+					client));
 			if (advanced) {
 				advancedTrainingSetup(client, ctx, password);
 			}
@@ -316,28 +297,47 @@ public class Init {
 	/**
 	 * Replaces mandant.classpath with default mandant.classpath.
 	 *
-	 * @throws IOException Thrown if file could not be copied or InputStream instance
-	 * could not be closed.
+	 * @throws IOException
+	 *             Thrown if file could not be copied or InputStream instance
+	 *             could not be closed.
 	 */
 	public void initMandantClasspath() throws IOException {
-		for (String client : clients) {
-			logger.debug(String.format(
-					"initializing mandant.classpath for client %s", client));
+		for (final String client : clients) {
+			logger.debug(String.format("initializing mandant.classpath for client %s", client));
 			copyFile(client, "java/", "mandant.classpath", "rwxrwx---");
 		}
 
+	}
+
+	public void initObjects() {
+		for (final String client : clients) {
+			logger.debug(String.format("initializing objects in client %s", client));
+			final DbContext ctx = ContextHelper.createClientContext(server, 6550, client, "sy",
+					"Initialization for training");
+			final List<Product> mycpus = ctx.createQuery(
+					SelectionBuilder.create(Product.class).add(Conditions.starts(Product.META.swd, "MYCPU")).build())
+					.execute();
+			for (final Product mycpu : mycpus) {
+				mycpu.delete();
+			}
+			logger.debug(String.format("%d Products with swd starting MYCPU deleted", mycpus.size()));
+			final ProductEditor mycpu = ctx.newObject(ProductEditor.class);
+			mycpu.setSwd("MYCPU");
+			mycpu.commit();
+			logger.debug(
+					String.format("Product %s - %s created", mycpu.objectId().getIdno(), mycpu.objectId().getSwd()));
+		}
 	}
 
 	/**
 	 * Empties all ow directories.
 	 */
 	public void initOwDirs() {
-		for (String client : clients) {
-			logger.debug(String.format("initializing ow directories for client %s",
-					client));
+		for (final String client : clients) {
+			logger.debug(String.format("initializing ow directories for client %s", client));
 			int no = 0, dirNo = 0;
-			File mandDir = new File(client);
-			FilenameFilter filter = new FilenameFilter() {
+			final File mandDir = new File(client);
+			final FilenameFilter filter = new FilenameFilter() {
 
 				@Override
 				public boolean accept(File dir, String name) {
@@ -345,94 +345,109 @@ public class Init {
 				}
 			};
 
-			File[] dirs = mandDir.listFiles(filter);
+			final File[] dirs = mandDir.listFiles(filter);
 			dirNo = dirs.length;
-			for (File dir : dirs) {
-				File[] files = dir.listFiles();
+			for (final File dir : dirs) {
+				final File[] files = dir.listFiles();
 				no = no + files.length;
-				for (File file : files) {
+				for (final File file : files) {
 					file.delete();
 				}
 			}
-			logger.debug(String.format("%d files in %d directories deleted", no,
-					dirNo));
+			logger.debug(String.format("%d files in %d directories deleted", no, dirNo));
 		}
 	}
 
 	/**
 	 * Inserts or replaces .vimrc.
 	 *
-	 * @throws IOException Thrown if file could not be copied or InputStream instance
-	 * could not be closed.
+	 * @throws IOException
+	 *             Thrown if file could not be copied or InputStream instance
+	 *             could not be closed.
 	 */
 	public void initVimrc() throws IOException {
-		for (String client : clients) {
+		for (final String client : clients) {
 			logger.debug(String.format("initializing .vimrc for client %s", client));
 			copyFile(client, "", ".vimrc", "rw-rw----");
+		}
+	}
+
+	public void transferInfosystems() throws IOException {
+		for (final String client : clients) {
+			logger.debug(String.format("transferring infosystems for client %s", client));
+			for (final String infosystem : getInfosystems()) {
+				copyFile(client, "", "is.OW1." + infosystem + ".tgz", "rwxrwx---");
+				logger.debug(String.format("tgz file copied for infosystem %s", infosystem));
+				Utils.runSystemCommand("tar", "-xf", "is.OW1." + infosystem + ".tgz", "-C", client);
+				logger.debug(String.format("tgz file extracted for infosystem %s", infosystem));
+				Utils.runSystemCommand(new File(client), "eval", "$(sh denv.sh)", "&&", "infosysimport.sh", "-p", "sy",
+						"-w", "OW1", "-s", infosystem);
+				logger.debug(String.format("infosystem %s imported", infosystem));
+				Utils.runSystemCommand(new File(client), "eval", "$(sh denv.sh)", "&&", "ajo_install.sh", "-c", "-I",
+						"-q", "ow1/" + infosystem);
+				logger.debug(String.format("ajo_install.sh executed for infosystem %s", infosystem));
+			}
 		}
 	}
 
 	/**
 	 * Creates and registers new JFOP Server instance for advanced AJO training.
 	 *
-	 * @param client The current client.
-	 * @param ctx The database context.
-	 * @param password The password definition object.
-	 * @throws CommandException Thrown if password definition object could not opened
-	 * for updating.
+	 * @param client
+	 *            The current client.
+	 * @param ctx
+	 *            The database context.
+	 * @param password
+	 *            The password definition object.
+	 * @throws CommandException
+	 *             Thrown if password definition object could not opened for
+	 *             updating.
 	 */
-	private void advancedTrainingSetup(String client, DbContext ctx,
-			Password password) throws CommandException {
-		logger.debug(String.format(
-				"Doing JFOP Server setup for advanced training for client %s",
-				client));
-		String no = getClientNo(client);
+	private void advancedTrainingSetup(String client, DbContext ctx, Password password) throws CommandException {
+		logger.debug(String.format("Doing JFOP Server setup for advanced training for client %s", client));
+		final String no = getClientNo(client);
 		logger.debug(String.format("Number of client %s was %s", client, no));
-		JFOPServerEditor jfopServerEditor = ctx.newObject(JFOPServerEditor.class);
+		final JFOPServerEditor jfopServerEditor = ctx.newObject(JFOPServerEditor.class);
 		jfopServerEditor.setSwd("DEBUGSY" + no);
 		jfopServerEditor.setDescr("JFOP Server Instance for Password 26");
 		jfopServerEditor.setJfopServerInstanceName("DEBUGSY" + no);
-		int portSuffix = Integer.parseInt(no);
+		final int portSuffix = Integer.parseInt(no);
 		logger.debug("Client number successfully converted to integer");
-		int port = 8010 + portSuffix;
-		boolean available = Utils.available(port);
+		final int port = 8010 + portSuffix;
+		final boolean available = Utils.available(port);
 		if (available) {
 			jfopServerEditor.setJfopServerDebuggerPort(port);
 			logger.debug(String.format("Debugger port field set to port number %d",
 					jfopServerEditor.getJfopServerDebuggerPort()));
 		}
-		String arguments = jfopServerEditor.getJfopServerJVMArguments();
-		jfopServerEditor.setJfopServerJVMArguments("-Djfop.server.devMode=3 "
-				+ arguments);
+		final String arguments = jfopServerEditor.getJfopServerJVMArguments();
+		jfopServerEditor.setJfopServerJVMArguments("-Djfop.server.devMode=3 " + arguments);
 		jfopServerEditor.commit();
-		logger.debug(String.format(
-				"New JFOP Server instance %s created for debugging in client %s",
+		logger.debug(String.format("New JFOP Server instance %s created for debugging in client %s",
 				jfopServerEditor.objectId().getIdno(), client));
-		JFOPServer jfopServer = jfopServerEditor.objectId();
-		PasswordEditor passwordEditor = password.createEditor();
+		final JFOPServer jfopServer = jfopServerEditor.objectId();
+		final PasswordEditor passwordEditor = password.createEditor();
 		passwordEditor.open(EditorAction.UPDATE);
 		passwordEditor.setJfopServer(jfopServer);
 		passwordEditor.commit();
-		logger.debug(String
-				.format("JFOP Server instance %s successfully entered in password definition of client %s",
-						jfopServer.getIdno(), client));
+		logger.debug(String.format("JFOP Server instance %s successfully entered in password definition of client %s",
+				jfopServer.getIdno(), client));
 	}
 
 	/**
 	 * Changes file permissions.
 	 *
-	 * @param rights File permissions as String (e.g. rwxrwx---).
-	 * @param path Path of the file for which to change permissions.
+	 * @param rights
+	 *            File permissions as String (e.g. rwxrwx---).
+	 * @param path
+	 *            Path of the file for which to change permissions.
 	 */
 	private void chmod(String rights, Path path) {
 		try {
-			Set<PosixFilePermission> perms = PosixFilePermissions.fromString(rights);
+			final Set<PosixFilePermission> perms = PosixFilePermissions.fromString(rights);
 			Files.setPosixFilePermissions(path, perms);
-		}
-		catch (IOException e) {
-			String message =
-					"Changing permissions of file " + path.getFileName()
-							+ " failed: " + e.getMessage();
+		} catch (final IOException e) {
+			final String message = "Changing permissions of file " + path.getFileName() + " failed: " + e.getMessage();
 			logger.fatal(message, e);
 			throw new RuntimeException(message, e);
 		}
@@ -441,26 +456,23 @@ public class Init {
 	/**
 	 * Changes owner and group of file.
 	 *
-	 * @param owner The owner of the file (group is always users).
-	 * @param path Path of the file for which to change owner and group.
+	 * @param owner
+	 *            The owner of the file (group is always users).
+	 * @param path
+	 *            Path of the file for which to change owner and group.
 	 */
 	private void chown(String owner, Path path) {
 		try {
-			UserPrincipalLookupService lookupService =
-					FileSystems.getDefault().getUserPrincipalLookupService();
-			UserPrincipal userPrincipal = lookupService.lookupPrincipalByName(owner);
-			GroupPrincipal groupPrincipal =
-					lookupService.lookupPrincipalByGroupName("users");
-			PosixFileAttributeView fileAttributeView =
-					Files.getFileAttributeView(path, PosixFileAttributeView.class,
-							LinkOption.NOFOLLOW_LINKS);
+			final UserPrincipalLookupService lookupService = FileSystems.getDefault().getUserPrincipalLookupService();
+			final UserPrincipal userPrincipal = lookupService.lookupPrincipalByName(owner);
+			final GroupPrincipal groupPrincipal = lookupService.lookupPrincipalByGroupName("users");
+			final PosixFileAttributeView fileAttributeView = Files.getFileAttributeView(path,
+					PosixFileAttributeView.class, LinkOption.NOFOLLOW_LINKS);
 			fileAttributeView.setOwner(userPrincipal);
 			fileAttributeView.setGroup(groupPrincipal);
-		}
-		catch (IOException e) {
-			String message =
-					"Setting owner and group for file " + path.getFileName()
-					+ " failed: " + e.getMessage();
+		} catch (final IOException e) {
+			final String message = "Setting owner and group for file " + path.getFileName() + " failed: "
+					+ e.getMessage();
 			logger.fatal(message, e);
 			throw new RuntimeException(message, e);
 		}
@@ -468,22 +480,25 @@ public class Init {
 
 	/**
 	 * Copies the specified file as resource from jar to the $MANDANTDIR of the
-	 * specified client. Sets owner to the specified client and group to users. Sets
-	 * the access rights as specified.
+	 * specified client. Sets owner to the specified client and group to users.
+	 * Sets the access rights as specified.
 	 *
-	 * @param client The client to copy to.
-	 * @param filePath The path to the file.
-	 * @param fileName The file to copy.
-	 * @param rights The access rights of the target file.
-	 * @throws IOException Thrown if file could not be copied or InputStream instance
-	 * could not be closed.
+	 * @param client
+	 *            The client to copy to.
+	 * @param filePath
+	 *            The path to the file.
+	 * @param fileName
+	 *            The file to copy.
+	 * @param rights
+	 *            The access rights of the target file.
+	 * @throws IOException
+	 *             Thrown if file could not be copied or InputStream instance
+	 *             could not be closed.
 	 */
-	private void copyFile(String client, String filePath, String fileName,
-			String rights) throws IOException {
-		try (InputStream in =
-				getClass().getClassLoader().getResourceAsStream(fileName)) {
-			File dest = new File(client + "/" + filePath, fileName);
-			Path path = dest.toPath();
+	private void copyFile(String client, String filePath, String fileName, String rights) throws IOException {
+		try (InputStream in = getClass().getClassLoader().getResourceAsStream(fileName)) {
+			final File dest = new File(client + "/" + filePath, fileName);
+			final Path path = dest.toPath();
 			Files.copy(in, path, StandardCopyOption.REPLACE_EXISTING);
 
 			chown(client, path);
@@ -501,28 +516,24 @@ public class Init {
 		return new FileVisitor<Path>() {
 
 			@Override
-			public FileVisitResult postVisitDirectory(Path dir, IOException exc)
-					throws IOException {
+			public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
 				Files.delete(dir);
 				return FileVisitResult.CONTINUE;
 			}
 
 			@Override
-			public FileVisitResult preVisitDirectory(Path dir,
-					BasicFileAttributes attrs) throws IOException {
+			public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
 				return FileVisitResult.CONTINUE;
 			}
 
 			@Override
-			public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
-					throws IOException {
+			public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
 				Files.delete(file);
 				return FileVisitResult.CONTINUE;
 			}
 
 			@Override
-			public FileVisitResult visitFileFailed(Path file, IOException exc)
-					throws IOException {
+			public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
 				throw new RuntimeException(exc);
 			}
 
@@ -539,8 +550,7 @@ public class Init {
 		return new FileVisitor<Path>() {
 
 			@Override
-			public FileVisitResult postVisitDirectory(Path dir, IOException exc)
-					throws IOException {
+			public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
 				if (exc != null) {
 					throw new RuntimeException(exc);
 				}
@@ -548,24 +558,21 @@ public class Init {
 			}
 
 			@Override
-			public FileVisitResult preVisitDirectory(Path dir,
-					BasicFileAttributes attrs) throws IOException {
+			public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
 				chmod("rwxrwx---", dir);
 				chown(currClient, dir);
 				return FileVisitResult.CONTINUE;
 			}
 
 			@Override
-			public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
-					throws IOException {
+			public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
 				chmod("rwxrwx---", file);
 				chown(currClient, file);
 				return FileVisitResult.CONTINUE;
 			}
 
 			@Override
-			public FileVisitResult visitFileFailed(Path file, IOException exc)
-					throws IOException {
+			public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
 				throw new RuntimeException(exc);
 			}
 
@@ -575,25 +582,26 @@ public class Init {
 	/**
 	 * Deletes all JFOP Server instances.
 	 *
-	 * @param ctx The database context.
+	 * @param ctx
+	 *            The database context.
 	 */
 	private void deleteAllJfopServerInstances(DbContext ctx) {
 		logger.debug("Deleting all JFOP Server instances");
-		SelectionBuilder<JFOPServer> selectionBuilder =
-				SelectionBuilder.create(JFOPServer.class);
-		Query<JFOPServer> query = ctx.createQuery(selectionBuilder.build());
-		int no = query.execute().size();
-		for (JFOPServer jfopServer : query) {
+		final SelectionBuilder<JFOPServer> selectionBuilder = SelectionBuilder.create(JFOPServer.class);
+		final Query<JFOPServer> query = ctx.createQuery(selectionBuilder.build());
+		final int no = query.execute().size();
+		for (final JFOPServer jfopServer : query) {
 			jfopServer.delete();
 		}
 		logger.debug(String.format("%d JFOP Server instances were deleted", no));
 	}
 
 	/**
-	 * Extracts the client number from the client name.
-	 * E.g.: 17erp1 -> 1 i7erp12 -> 12 schul01 -> 1
+	 * Extracts the client number from the client name. E.g.: 17erp1 -> 1
+	 * i7erp12 -> 12 schul01 -> 1
 	 *
-	 * @param client The client name.
+	 * @param client
+	 *            The client name.
 	 * @return The client number.
 	 */
 	private String getClientNo(String client) {
@@ -610,9 +618,8 @@ public class Init {
 	 * @return Returns names of all infosystems to initialize as an ArrayList.
 	 */
 	private ArrayList<String> getInfosystems() {
-		ArrayList<String> infosystemNames = new ArrayList<String>();
+		final ArrayList<String> infosystemNames = new ArrayList<String>();
 		infosystemNames.add("VARNAMELIST");
-		infosystemNames.add("GIT");
 		infosystemNames.add("INVENTUR");
 		return infosystemNames;
 	}
@@ -620,7 +627,8 @@ public class Init {
 	/**
 	 * Resets header fields of infosystem.
 	 *
-	 * @param infosytemEditor The editor instance of the current infosystem.
+	 * @param infosytemEditor
+	 *            The editor instance of the current infosystem.
 	 * @return Whether or not any field has been changed.
 	 */
 	private boolean initHeaderFields(InfosystemEditor infosytemEditor) {
@@ -707,7 +715,8 @@ public class Init {
 	/**
 	 * Resets row fields of infosystem.
 	 *
-	 * @param row The current table row of the infosystem.
+	 * @param row
+	 *            The current table row of the infosystem.
 	 */
 	private void initRowFields(Row row) {
 		row.setBtnBeforeEFOP("");
@@ -720,22 +729,22 @@ public class Init {
 	/**
 	 * Selects an infosystem.
 	 *
-	 * @param ctx The database context.
-	 * @param swd The search word of the infosystem.
+	 * @param ctx
+	 *            The database context.
+	 * @param swd
+	 *            The search word of the infosystem.
 	 * @return The infosystem as an instance of the class Infosystem.
 	 */
 	private Infosystem selectInfosystem(DbContext ctx, String swd) {
-		SelectionBuilder<Infosystem> selectionBuilder =
-				SelectionBuilder.create(Infosystem.class);
+		final SelectionBuilder<Infosystem> selectionBuilder = SelectionBuilder.create(Infosystem.class);
 		selectionBuilder.add(Conditions.eq(Infosystem.META.swd, swd));
 		return QueryUtil.getFirst(ctx, selectionBuilder.build());
 	}
 
 	private Password selectPassword(DbContext ctx) {
-		SelectionBuilder<Password> selectionBuilder =
-				SelectionBuilder.create(Password.class);
+		final SelectionBuilder<Password> selectionBuilder = SelectionBuilder.create(Password.class);
 		selectionBuilder.add(Conditions.eq(Password.META.idno, "26"));
-		Password password = QueryUtil.getFirst(ctx, selectionBuilder.build());
+		final Password password = QueryUtil.getFirst(ctx, selectionBuilder.build());
 		return password;
 	}
 
