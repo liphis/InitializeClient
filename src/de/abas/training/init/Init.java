@@ -115,7 +115,7 @@ public class Init {
 			initJfopServerInstances();
 			initJfopServerDatFiles();
 			initAjoPerfProducts();
-			initOwDirs();
+			initFOPs();
 			cloneGitRepo();
 		} catch (CommandException | IOException e) {
 			System.out.println("An error occurred: " + e.getMessage());
@@ -132,9 +132,8 @@ public class Init {
 			final DbContext ctx = ContextHelper.createClientContext(server, 6550, client, "sy",
 					"Deleting AJOPERF products");
 			logger.debug(String.format("deleting all AJOPERF products in client %s", client));
-			final SelectionBuilder<Product> selectionBuilder = SelectionBuilder.create(Product.class);
-			selectionBuilder.add(Conditions.starts(Product.META.swd, "AJOPERF"));
-			final Query<Product> query = ctx.createQuery(selectionBuilder.build());
+			final Query<Product> query = ctx.createQuery(
+					SelectionBuilder.create(Product.class).add(Conditions.starts(Product.META.swd, "AJOPERF")).build());
 			final int no = query.execute().size();
 			for (final Product product : query) {
 				product.delete();
@@ -156,6 +155,23 @@ public class Init {
 		for (final String client : clients) {
 			logger.debug(String.format("initializing .bashrc for client %s", client));
 			copyFile(client, "", ".bashrc", "rwxrwx---");
+		}
+	}
+
+	/**
+	 * Copies FOPs to ow1.
+	 *
+	 * @throws IOException
+	 *             Thrown if file could not be copied or InputStream instance
+	 *             could not be closed.
+	 */
+	public void initFOPs() throws IOException {
+		for (final String client : clients) {
+			logger.debug(String.format("initializing FOPs for client %s", client));
+			copyFile(client, "ow1", "ASSIGN.VALUE.FO2", "rwxrwx---");
+			copyFile(client, "ow1", "ASSIGN.VALUE.FO", "rwxrwx---");
+			copyFile(client, "ow1", "JFOP.WITH.ARGUMENTS.STATUS.FO2", "rwxrwx---");
+			copyFile(client, "ow1", "JFOP.WITH.ARGUMENTS.STATUS.FO", "rwxrwx---");
 		}
 	}
 
@@ -334,35 +350,6 @@ public class Init {
 	}
 
 	/**
-	 * Empties all ow directories.
-	 */
-	public void initOwDirs() {
-		for (final String client : clients) {
-			logger.debug(String.format("initializing ow directories for client %s", client));
-			int no = 0, dirNo = 0;
-			final File mandDir = new File(client);
-			final FilenameFilter filter = new FilenameFilter() {
-
-				@Override
-				public boolean accept(File dir, String name) {
-					return name.matches("ow[a-z0-9]+");
-				}
-			};
-
-			final File[] dirs = mandDir.listFiles(filter);
-			dirNo = dirs.length;
-			for (final File dir : dirs) {
-				final File[] files = dir.listFiles();
-				no = no + files.length;
-				for (final File file : files) {
-					file.delete();
-				}
-			}
-			logger.debug(String.format("%d files in %d directories deleted", no, dirNo));
-		}
-	}
-
-	/**
 	 * Inserts or replaces .vimrc.
 	 *
 	 * @throws IOException
@@ -381,7 +368,8 @@ public class Init {
 	 * script infosys_install.sh.
 	 *
 	 * @throws IOException
-	 *             Thrown if file could not be copied.
+	 *             Thrown if file could not be copied or InputStream instance
+	 *             could not be closed.
 	 */
 	public void transferInfosystems() throws IOException {
 		for (final String client : clients) {
@@ -479,7 +467,7 @@ public class Init {
 		try {
 			final UserPrincipalLookupService lookupService = FileSystems.getDefault().getUserPrincipalLookupService();
 			final UserPrincipal userPrincipal = lookupService.lookupPrincipalByName(owner);
-			final GroupPrincipal groupPrincipal = lookupService.lookupPrincipalByGroupName("users");
+			final GroupPrincipal groupPrincipal = lookupService.lookupPrincipalByGroupName("abas");
 			final PosixFileAttributeView fileAttributeView = Files.getFileAttributeView(path,
 					PosixFileAttributeView.class, LinkOption.NOFOLLOW_LINKS);
 			fileAttributeView.setOwner(userPrincipal);
@@ -601,10 +589,10 @@ public class Init {
 	 */
 	private void deleteAllJfopServerInstances(DbContext ctx) {
 		logger.debug("Deleting all JFOP Server instances");
-		final SelectionBuilder<JFOPServer> selectionBuilder = SelectionBuilder.create(JFOPServer.class);
-		final Query<JFOPServer> query = ctx.createQuery(selectionBuilder.build());
-		final int no = query.execute().size();
-		for (final JFOPServer jfopServer : query) {
+		final List<JFOPServer> jfopServers = ctx.createQuery(SelectionBuilder.create(JFOPServer.class).build())
+				.execute();
+		final int no = jfopServers.size();
+		for (final JFOPServer jfopServer : jfopServers) {
 			jfopServer.delete();
 		}
 		logger.debug(String.format("%d JFOP Server instances were deleted", no));
@@ -750,16 +738,13 @@ public class Init {
 	 * @return The infosystem as an instance of the class Infosystem.
 	 */
 	private Infosystem selectInfosystem(DbContext ctx, String swd) {
-		final SelectionBuilder<Infosystem> selectionBuilder = SelectionBuilder.create(Infosystem.class);
-		selectionBuilder.add(Conditions.eq(Infosystem.META.swd, swd));
-		return QueryUtil.getFirst(ctx, selectionBuilder.build());
+		return QueryUtil.getFirst(ctx,
+				SelectionBuilder.create(Infosystem.class).add(Conditions.eq(Infosystem.META.swd, swd)).build());
 	}
 
 	private Password selectPassword(DbContext ctx) {
-		final SelectionBuilder<Password> selectionBuilder = SelectionBuilder.create(Password.class);
-		selectionBuilder.add(Conditions.eq(Password.META.idno, "26"));
-		final Password password = QueryUtil.getFirst(ctx, selectionBuilder.build());
-		return password;
+		return QueryUtil.getFirst(ctx,
+				SelectionBuilder.create(Password.class).add(Conditions.eq(Password.META.idno, "26")).build());
 	}
 
 }

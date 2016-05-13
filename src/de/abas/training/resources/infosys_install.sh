@@ -23,7 +23,7 @@ usage()
 #------------------------------------------------------------------------------
 install_infosys()
 {
-  su -c "cd $1 && eval \$(sh denv.sh) && tar -xf is.OW1.$2.tgz && infosysimport.sh -p sy -w OW1 -s $2" $1
+  su -c "cd $1 && eval \$(sh denv.sh) && tar -xf is.OW1.$2.tgz && infosysimport.sh -p sy -w OW1 -s $2 && ajo_install.sh -c -I -q ow1/$2" $1
 }
 #------------------------------------------------------------------------------
 # display usage
