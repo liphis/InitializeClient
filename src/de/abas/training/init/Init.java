@@ -309,6 +309,9 @@ public class Init {
 
 	}
 
+	/**
+	 * Deletes and creates objects to ensure valid tests.
+	 */
 	public void initObjects() {
 		for (final String client : clients) {
 			logger.debug(String.format("initializing objects in client %s", client));
@@ -326,6 +329,7 @@ public class Init {
 			mycpu.commit();
 			logger.debug(
 					String.format("Product %s - %s created", mycpu.objectId().getIdno(), mycpu.objectId().getSwd()));
+			ctx.close();
 		}
 	}
 
@@ -372,21 +376,31 @@ public class Init {
 		}
 	}
 
+	/**
+	 * Transfers tgz files of infosystems to client dir and installs them using
+	 * script infosys_install.sh.
+	 *
+	 * @throws IOException
+	 *             Thrown if file could not be copied.
+	 */
 	public void transferInfosystems() throws IOException {
 		for (final String client : clients) {
 			logger.debug(String.format("transferring infosystems for client %s", client));
-			for (final String infosystem : getInfosystems()) {
+			final DbContext ctx = ContextHelper.createClientContext(server, 6550, client, "sy",
+					"Initialization for training");
+			final ArrayList<String> infosystems = getInfosystems();
+			for (final String infosystem : infosystems) {
+				final List<Infosystem> infosysObjects = ctx.createQuery(SelectionBuilder.create(Infosystem.class)
+						.add(Conditions.starts(Infosystem.META.swd, infosystem)).build()).execute();
+				for (final Infosystem infosysObject : infosysObjects) {
+					infosysObject.delete();
+				}
 				copyFile(client, "", "is.OW1." + infosystem + ".tgz", "rwxrwx---");
 				logger.debug(String.format("tgz file copied for infosystem %s", infosystem));
-				Utils.runSystemCommand("tar", "-xf", "is.OW1." + infosystem + ".tgz", "-C", client);
-				logger.debug(String.format("tgz file extracted for infosystem %s", infosystem));
-				Utils.runSystemCommand(new File(client), "eval", "$(sh denv.sh)", "&&", "infosysimport.sh", "-p", "sy",
-						"-w", "OW1", "-s", infosystem);
-				logger.debug(String.format("infosystem %s imported", infosystem));
-				Utils.runSystemCommand(new File(client), "eval", "$(sh denv.sh)", "&&", "ajo_install.sh", "-c", "-I",
-						"-q", "ow1/" + infosystem);
-				logger.debug(String.format("ajo_install.sh executed for infosystem %s", infosystem));
+				Utils.runSystemCommand("./infosys_install.sh", infosystem, client);
+				logger.debug(String.format("Infosystem %s installed", infosystem));
 			}
+			ctx.close();
 		}
 	}
 
@@ -620,7 +634,7 @@ public class Init {
 	private ArrayList<String> getInfosystems() {
 		final ArrayList<String> infosystemNames = new ArrayList<String>();
 		infosystemNames.add("VARNAMELIST");
-		infosystemNames.add("INVENTUR");
+		// infosystemNames.add("INVENTUR");
 		return infosystemNames;
 	}
 

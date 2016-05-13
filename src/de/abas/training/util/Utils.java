@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.DatagramSocket;
 import java.net.ServerSocket;
+import java.util.Arrays;
 
 import org.apache.log4j.Logger;
 
@@ -14,19 +15,17 @@ public class Utils {
 	/**
 	 * Determines whether a specified port is available or not.
 	 *
-	 * @param port Port to check availability.
+	 * @param port
+	 *            Port to check availability.
 	 * @return True if the port is available, otherwise false.
 	 */
 	public static boolean available(int port) {
-		try (ServerSocket ss = new ServerSocket(port);
-				DatagramSocket ds = new DatagramSocket(port)) {
+		try (ServerSocket ss = new ServerSocket(port); DatagramSocket ds = new DatagramSocket(port)) {
 			ss.setReuseAddress(true);
 			ds.setReuseAddress(true);
 			return true;
-		}
-		catch (IOException e) {
-			logger.error(String.format("Port %d is already in use: %s", port,
-					e.getMessage()));
+		} catch (final IOException e) {
+			logger.error(String.format("Port %d is already in use: %s", port, e.getMessage()));
 			return false;
 		}
 	}
@@ -47,32 +46,32 @@ public class Utils {
 	/**
 	 * Runs a system command.
 	 *
-	 * @param directory Directory in which to execute command.
-	 * @param commandAndArgs Command to execute.
-	 * @throws IOException Thrown if an error occurs while executing the commands.
+	 * @param directory
+	 *            Directory in which to execute command.
+	 * @param commandAndArgs
+	 *            Command to execute.
+	 * @throws IOException
+	 *             Thrown if an error occurs while executing the commands.
 	 */
-	public static void runSystemCommand(File directory, String... commandAndArgs)
-			throws IOException {
+	public static void runSystemCommand(File directory, String... commandAndArgs) throws IOException {
+		Utils.logger.debug("Executing commands:" + Arrays.toString(commandAndArgs) + " in dir:" + directory);
 		try {
 			ProcessBuilder pb = new ProcessBuilder();
 			pb = pb.directory(directory);
-			logger.debug(String.format("Execution directory set to %s", pb
-					.directory().getAbsolutePath()));
+			logger.debug(String.format("Execution directory set to %s", pb.directory().getAbsolutePath()));
 			pb.command(commandAndArgs);
-			Process process = pb.start();
+			final Process process = pb.start();
 			if (process != null) {
-				int exitCode = process.waitFor();
+				final int exitCode = process.waitFor();
 				if (exitCode != 0) {
-					String message =
-							"Command execution failed with exit code " + exitCode;
+					final String message = "Command execution failed with exit code " + exitCode;
 					logger.fatal(message);
 					throw new RuntimeException(message);
 				}
 			}
-		}
-		catch (InterruptedException e) {
+		} catch (final InterruptedException e) {
 			Thread.currentThread().interrupt();
-			String message = "Command execution interrupted";
+			final String message = "Command execution interrupted";
 			logger.fatal(message, e);
 			throw new RuntimeException(message);
 		}
@@ -81,27 +80,28 @@ public class Utils {
 	/**
 	 * Runs a system command.
 	 *
-	 * @param commandAndArgs Command to execute.
-	 * @throws IOException Thrown if an error occurs while executing the commands.
+	 * @param commandAndArgs
+	 *            Command to execute.
+	 * @throws IOException
+	 *             Thrown if an error occurs while executing the commands.
 	 */
 	public static void runSystemCommand(String... commandAndArgs) throws IOException {
+		Utils.logger.debug("Executing commands:" + Arrays.toString(commandAndArgs));
 		try {
-			ProcessBuilder pb = new ProcessBuilder();
+			final ProcessBuilder pb = new ProcessBuilder();
 			pb.command(commandAndArgs);
-			Process process = pb.start();
+			final Process process = pb.start();
 			if (process != null) {
-				int exitCode = process.waitFor();
+				final int exitCode = process.waitFor();
 				if (exitCode != 0) {
-					String message =
-							"Command execution failed with exit code " + exitCode;
+					final String message = "Command execution failed with exit code " + exitCode;
 					logger.fatal(message);
 					throw new RuntimeException(message);
 				}
 			}
-		}
-		catch (InterruptedException e) {
+		} catch (final InterruptedException e) {
 			Thread.currentThread().interrupt();
-			String message = "Command execution interrupted";
+			final String message = "Command execution interrupted";
 			logger.fatal(message, e);
 			throw new RuntimeException(message);
 		}
