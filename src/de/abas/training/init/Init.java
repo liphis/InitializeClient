@@ -622,7 +622,9 @@ public class Init {
 	private ArrayList<String> getInfosystems() {
 		final ArrayList<String> infosystemNames = new ArrayList<String>();
 		infosystemNames.add("VARNAMELIST");
-		// infosystemNames.add("INVENTUR");
+		if (advanced) {
+			infosystemNames.add("INVENTUR");
+		}
 		return infosystemNames;
 	}
 
