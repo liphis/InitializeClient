@@ -88,6 +88,7 @@ public class Init {
 				Utils.runSystemCommand(file.getAbsoluteFile(), "git", "reset", "--hard", "HEAD");
 				logger.debug("Branch template checked out");
 				Utils.runSystemCommand(file.getAbsoluteFile(), "git", "checkout", "template");
+				Files.walkFileTree(file.toPath(), defineFileVisitorPermChange());
 			} else {
 				logger.debug(String.format("cloning AJOBasic project for client %s", client));
 				final File file = new File(client + "/java/projects/AJOBasic");
