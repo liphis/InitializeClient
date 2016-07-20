@@ -39,6 +39,7 @@ import de.abas.erp.db.schema.infrastructure.JFOPServerEditor;
 import de.abas.erp.db.schema.part.Product;
 import de.abas.erp.db.schema.part.ProductEditor;
 import de.abas.erp.db.selection.Conditions;
+import de.abas.erp.db.selection.RowSelectionBuilder;
 import de.abas.erp.db.selection.SelectionBuilder;
 import de.abas.erp.db.util.ContextHelper;
 import de.abas.erp.db.util.QueryUtil;
@@ -327,19 +328,16 @@ public class Init {
 
 	/**
 	 * Deletes and creates objects to ensure valid tests.
+	 * 
+	 * @throws CommandException
+	 *             If an error occurs while editing.
 	 */
-	public void initObjects() {
+	public void initObjects() throws CommandException {
 		for (final String client : clients) {
 			logger.debug(String.format("initializing objects in client %s", client));
 			final DbContext ctx = ContextHelper.createClientContext(server, 6550, client, "sy",
 					"Initialization for training");
-			final List<Product> mycpus = ctx.createQuery(
-					SelectionBuilder.create(Product.class).add(Conditions.starts(Product.META.swd, "MYCPU")).build())
-					.execute();
-			for (final Product mycpu : mycpus) {
-				mycpu.delete();
-			}
-			logger.debug(String.format("%d Products with swd starting MYCPU deleted", mycpus.size()));
+			deleteProducts(ctx, "MYCPU");
 			final ProductEditor mycpu = ctx.newObject(ProductEditor.class);
 			mycpu.setSwd("MYCPU");
 			mycpu.commit();
@@ -596,6 +594,33 @@ public class Init {
 			jfopServer.delete();
 		}
 		logger.debug(String.format("%d JFOP Server instances were deleted", no));
+	}
+
+	/**
+	 * Deletes all products with according swd.
+	 *
+	 * @param ctx
+	 *            The database context.
+	 * @throws CommandException
+	 *             If an error occurs while editing.
+	 */
+	private void deleteProducts(final DbContext ctx, String swd) throws CommandException {
+		final List<Product> objects = ctx
+				.createQuery(
+						SelectionBuilder.create(Product.class).add(Conditions.starts(Product.META.swd, swd)).build())
+				.execute();
+		for (final Product object : objects) {
+			final List<Product.Row> rows = ctx.createQuery(RowSelectionBuilder.create(Product.class, Product.Row.class)
+					.add(Conditions.eq(Product.Row.META.productListElem, object)).build()).execute();
+			for (final Product.Row row : rows) {
+				final ProductEditor product = row.header().createEditor();
+				product.open(EditorAction.UPDATE);
+				product.table().deleteRow(row.getRowNo());
+				product.commit();
+			}
+			object.delete();
+		}
+		logger.debug(String.format("%d Products with swd starting MYCPU deleted", objects.size()));
 	}
 
 	/**
